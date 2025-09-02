@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.o
+*.so
+
+# Virtual environment
+.venv
+venv
+ENV
+env
+
+# Model files
+# Ignore large model files from version control
+*.pt
+*.pth
+
+# IDE / Editor specific
+.vscode/
+.idea/
