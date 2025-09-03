@@ -1,3 +1,7 @@
+This repository contains a machine learning-powered web service designed to detect keypoints on a bedsheet from the aligned Color and Depth images. 
+The system is built with Python and uses the FastAPI framework for the web API.
+
+```
 bedsheet-endpoints/
 ├── scripts/
 │   └── app_client.py                        # client script here
@@ -22,3 +26,4 @@ bedsheet-endpoints/
 │       └── main.py                          # FastAPI app instantiation & startup
 |
 └── README.md                                # This file
+```
