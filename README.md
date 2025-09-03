@@ -1,6 +1,13 @@
 This repository contains a machine learning-powered web service designed to detect keypoints on a bedsheet from the aligned Color and Depth images. 
 The system is built with Python and uses the FastAPI framework for the web API.
 
+### Quick Start
+```
+cd src
+python -m uvicorn main:app --reload
+```
+
+### Folder Structure
 ```
 bedsheet-endpoints/
 ├── scripts/
