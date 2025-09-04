@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+requests
+numpy
+opencv-python
+torch
+scipy
+ultralytics
+timm
+pydantic-settings
