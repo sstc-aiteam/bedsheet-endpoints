@@ -2,6 +2,18 @@ This repository contains a machine learning-powered web service designed to dete
 The system is built with Python and uses the FastAPI framework for the web API.
 
 ### Quick Start
+1. Create python virtual runtime environment
+```
+python -m venv .bedsheet-endpoints
+source .bedsheet-endpoints/bin/activate
+```
+
+2. Install python packages  
+```
+pip install -r requirements.txt
+```
+
+3. Start FastAPI service
 ```
 cd src
 nohup python -m uvicorn main:app --host ${HOST_FastAPI} --port 8000 --reload &
