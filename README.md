@@ -4,7 +4,7 @@ The system is built with Python and uses the FastAPI framework for the web API.
 ### Quick Start
 ```
 cd src
-nohup python -m uvicorn main:app --host 192.168.50.57 --port 8000 --reload &
+nohup python -m uvicorn main:app --host ${HOST_FastAPI} --port 8000 --reload &
 ```
 
 ### Folder Structure
