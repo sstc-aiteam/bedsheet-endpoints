@@ -3,8 +3,8 @@ uvicorn[standard]
 requests
 # numpy
 # torch
-opencv-python
 # scipy
+opencv-python
 ultralytics[export]
 timm
 pydantic-settings
