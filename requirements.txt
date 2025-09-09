@@ -4,8 +4,8 @@ requests
 # numpy
 # torch
 opencv-python
-scipy
-ultralytics
+# scipy
+ultralytics[export]
 timm
 pydantic-settings
 python-multipart
