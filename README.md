@@ -50,3 +50,5 @@ bedsheet-endpoints/
 ### Reference
 - [Install PyTorch on the Jetson Orin Nano running JetPack 6.2](https://ninjalabo.ai/blogs/jetson_pytorch.html)
 - [Installing PyTorch for Jetson Platform](https://docs.nvidia.com/deeplearning/frameworks/install-pytorch-jetson-platform/index.html)  
+- [Your First Jetson Container](https://developer.nvidia.com/embedded/learn/tutorials/jetson-container)
+  - [Cloud-Native on Jetson](https://developer.nvidia.com/embedded/jetson-cloud-native)
