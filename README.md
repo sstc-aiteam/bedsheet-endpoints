@@ -52,3 +52,5 @@ bedsheet-endpoints/
 - [Installing PyTorch for Jetson Platform](https://docs.nvidia.com/deeplearning/frameworks/install-pytorch-jetson-platform/index.html)  
 - [Your First Jetson Container](https://developer.nvidia.com/embedded/learn/tutorials/jetson-container)
   - [Cloud-Native on Jetson](https://developer.nvidia.com/embedded/jetson-cloud-native)
+- [Jetson Orin + RealSense in 5 minutes](https://jetsonhacks.com/2025/03/20/jetson-orin-realsense-in-5-minutes/)
+
