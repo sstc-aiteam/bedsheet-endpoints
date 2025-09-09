@@ -1,10 +1,11 @@
 fastapi
 uvicorn[standard]
 requests
-numpy
+# numpy
+# torch
 opencv-python
-torch
 scipy
 ultralytics
 timm
 pydantic-settings
+python-multipart
