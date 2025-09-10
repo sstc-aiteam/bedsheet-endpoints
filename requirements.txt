@@ -9,3 +9,4 @@ ultralytics[export]
 timm
 pydantic-settings
 python-multipart
+pyrealsense2
