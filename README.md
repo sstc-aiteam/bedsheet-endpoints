@@ -34,6 +34,7 @@ bedsheet-endpoints/
 │       │   └── config.py                    # Configuration and settings
 │       ├── services/
 │       │   └── keypoint_detector.py         # Business logic for detection
+|       |   └── realsense_capture.py         # Captures the spatial alignment between a color and a depth frame from an Intel RealSense         
 │       ├── models/                          # Model network
 │       │   ├── utils.py
 │       │   └── yolo_vit.py
