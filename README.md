@@ -56,4 +56,6 @@ bedsheet-endpoints/
 - [Jetson Orin + RealSense in 5 minutes](https://jetsonhacks.com/2025/03/20/jetson-orin-realsense-in-5-minutes/)
 - [Intel® RealSense™ SDK](https://github.com/IntelRealSense/librealsense)
 - [NoMachine -Jetson Remote Desktop](https://jetsonhacks.com/2023/12/03/nomachine-jetson-remote-desktop/)
-
+- Chromium browser installation
+  - `sudo apt install chromium-browser` 
+  - [Fixing Browser on Jetson Orin After Update](https://www.cytron.io/tutorial/fixing-browser-on-orin-nano?srsltid=AfmBOooYB3fVsAevCR_Jti3VefWsatnt-JAfQbPPSNdbTzsp0kFWLnzc)
