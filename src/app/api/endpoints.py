@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi.responses import JSONResponse
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 
-from app.services.keypoint_detector import detector_service
+from app.services.depth_keypoint_detector import depth_detector_service
 from app.services.realsense_capture import capture_images, NoDeviceError, FrameCaptureError, RealSenseError
 from app.services.rgb_keypoint_detector import rgb_detector_service
 from app.api.detection_method import DetectionMethod
@@ -53,7 +53,7 @@ async def detect_keypoints(
         if method == DetectionMethod.RGB:
             processed_image, keypoints = rgb_detector_service.detect_keypoints(color_image, depth_image)
         else: # method == DetectionMethod.DEPTH
-            processed_image, keypoints = detector_service.detect_keypoints(color_image, depth_image)
+            processed_image, keypoints = depth_detector_service.detect_keypoints(color_image, depth_image)
 
         _, encoded_img = cv2.imencode('.PNG', processed_image)
         processed_img_base64 = base64.b64encode(encoded_img.tobytes()).decode('utf-8')
@@ -83,7 +83,7 @@ async def capture_and_detect_keypoints(
         if method == DetectionMethod.RGB:
             processed_image, keypoints = rgb_detector_service.detect_keypoints(color_image, depth_image)
         else: # method == DetectionMethod.DEPTH
-            processed_image, keypoints = detector_service.detect_keypoints(color_image, depth_image)
+            processed_image, keypoints = depth_detector_service.detect_keypoints(color_image, depth_image)
 
         _, encoded_img = cv2.imencode('.PNG', processed_image)
         processed_img_base64 = base64.b64encode(encoded_img.tobytes()).decode('utf-8')

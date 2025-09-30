@@ -10,7 +10,7 @@ from app.models.utils import YoloBackbone
 from app.core.config import settings
 
 
-class KeypointDetector:
+class DepthKeypointDetector:
     def __init__(self):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.yolo_model_finetuned = None
@@ -119,4 +119,4 @@ class KeypointDetector:
         return centroids
 
 # Create a single, reusable instance of the detector
-detector_service = KeypointDetector()
+depth_detector_service = DepthKeypointDetector()
