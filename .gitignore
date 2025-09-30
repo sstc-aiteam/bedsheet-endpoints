@@ -15,6 +15,13 @@ env
 *.pt
 *.pth
 
+# RGB and Depth image files
+*.png
+*.npy
+
 # IDE / Editor specific
 .vscode/
 .idea/
+
+# Demo scripts
+src/rgb_keypoint_detection.py
