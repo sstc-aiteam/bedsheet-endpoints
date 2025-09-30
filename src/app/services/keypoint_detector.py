@@ -79,13 +79,13 @@ class KeypointDetector:
                 points = self._thresholded_locations(kp, settings.KEYPOINT_THRESHOLD)
                 
                 for p in points:
-                    i, j = p
-                    orig_j = int(j * (W / 128))
-                    orig_i = int(i * (H / 128))
+                    y, x = p
+                    orig_x = int(x * (W / 128))
+                    orig_y = int(y * (H / 128))
 
-                    distance_meters = float(depth_image[orig_i, orig_j]) * settings.DEPTH_SCALE
-                    keypoints.append({"x": orig_j, "y": orig_i, "depth_m": round(distance_meters, 5)})
-                    cv2.circle(color_image, (orig_j, orig_i), 5, (0, 0, 255), -1)
+                    distance_meters = float(depth_image[orig_y, orig_x]) * settings.DEPTH_SCALE
+                    keypoints.append({"x": orig_x, "y": orig_y, "depth_m": round(distance_meters, 5)})
+                    cv2.circle(color_image, (orig_x, orig_y), 5, (0, 0, 255), -1)
             
         return color_image, keypoints
 
