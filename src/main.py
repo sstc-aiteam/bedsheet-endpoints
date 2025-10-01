@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 app = FastAPI(
     title="Bed-making Keypoint Detection API",
     description="An API for detecting keypoints on a bedsheet using color and depth images.",
-    version="1.0.0"
+    version="0.2.0"
 )
 
 @app.on_event("startup")
