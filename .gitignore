@@ -16,8 +16,7 @@ env
 *.pth
 
 # RGB and Depth image files
-*.png
-*.npy
+image_data/
 
 # IDE / Editor specific
 .vscode/
