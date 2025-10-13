@@ -18,6 +18,9 @@ env
 # RGB and Depth image files
 image_data/
 
+# results 
+inference_results/
+
 # IDE / Editor specific
 .vscode/
 .idea/

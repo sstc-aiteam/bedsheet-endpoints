@@ -1,6 +1,8 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
+from scipy.ndimage import label
 
 class YoloBackbone(nn.Module):
     def __init__(self, backbone_seq, selected_indices=None):
@@ -86,3 +88,81 @@ def spatial_softmax(heatmap):
     return softmax_flat.view(B, 1, H, W)
     # return heatmap
 
+def thresholded_locations(data_2d, threshold):
+    """
+    Find centroids of connected components above a threshold.
+    Args:
+        data_2d: 2D numpy array (can be logits or probabilities).
+        threshold: threshold for segmentation.
+        from_logits: If True, applies sigmoid to convert logits to probabilities.
+    Returns:
+        List of centroid coordinates (as np arrays).
+    """
+    # If input is logits, convert to probability first!
+    probs = data_2d
+
+    # Create a binary mask
+    thresholded_2d = (probs >= threshold).astype(np.uint8)
+
+    structure = np.ones((3, 3), dtype=int)  # 8-connectivity
+    labeled, num_features = label(thresholded_2d, structure=structure)
+    centroids = []
+    for mesh_label in range(1, num_features + 1):
+        positions = np.argwhere(labeled == mesh_label)
+        centroid = positions.mean(axis=0)
+        centroids.append(centroid)
+    return centroids
+
+def combine_nearby_peaks(peaks, distance_threshold=10):
+    """
+    Combine nearby peaks into single keypoints using clustering.
+    
+    Args:
+        peaks: List of peak coordinates [[y1, x1], [y2, x2], ...]
+        distance_threshold: Maximum distance to consider peaks as part of same cluster
+    
+    Returns:
+        List of combined peak coordinates
+    """
+    if not peaks:
+        return []
+    
+    # Convert to numpy array for easier manipulation
+    peaks = np.array(peaks)
+    
+    # If only one peak, return it
+    if len(peaks) == 1:
+        return peaks.tolist()
+    
+    # Calculate pairwise distances
+    from scipy.spatial.distance import pdist, squareform
+    distances = squareform(pdist(peaks))
+    
+    # Create clusters
+    clusters = []
+    used = set()
+    
+    for i in range(len(peaks)):
+        if i in used:
+            continue
+            
+        # Start a new cluster
+        cluster = [i]
+        used.add(i)
+        
+        # Find all peaks within distance_threshold
+        for j in range(i + 1, len(peaks)):
+            if j not in used and distances[i, j] <= distance_threshold:
+                cluster.append(j)
+                used.add(j)
+        
+        clusters.append(cluster)
+    
+    # Calculate centroid for each cluster
+    combined_peaks = []
+    for cluster in clusters:
+        cluster_peaks = peaks[cluster]
+        centroid = cluster_peaks.mean(axis=0)
+        combined_peaks.append(centroid)
+    
+    return combined_peaks
