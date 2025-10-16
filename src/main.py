@@ -1,5 +1,6 @@
 
 import logging
+import sys
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -7,8 +8,10 @@ from pathlib import Path
 from app.api.endpoints import router as api_router
 from app.services.depth_keypoint_detector import depth_detector_service
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+app_logger = logging.getLogger("app")
+app_logger.setLevel(logging.INFO)
+
 
 app = FastAPI(
     title="Bed-making Keypoint Detection API",

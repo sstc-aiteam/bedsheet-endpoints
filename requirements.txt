@@ -10,3 +10,4 @@ timm
 pydantic-settings
 python-multipart
 pyrealsense2
+python-magic

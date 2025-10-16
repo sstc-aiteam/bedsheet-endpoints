@@ -16,9 +16,10 @@ from app.services.depth_keypoint_detector import depth_detector_service
 from app.services.metaclip_keypoint_detector import MetaClipKeypointDetectorService
 from app.services.realsense_capture import capture_images, NoDeviceError, FrameCaptureError, RealSenseError
 from app.services.rgb_keypoint_detector import rgb_detector_service
-from app.api.param_type import DetectionMethod, ModelType
-from app.api.base64image import Base64Image
+from app.api.param_schema import DetectionMethod, ModelType, ProcessedImagePayload
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -31,7 +32,11 @@ async def _process_and_detect(
     """Helper function to process images and run detection."""
     color_contents = await color_file.read()
     color_nparr = np.frombuffer(color_contents, np.uint8)
-    color_image = cv2.imdecode(color_nparr, cv2.IMREAD_COLOR)
+    img_bgr = cv2.imdecode(color_nparr, cv2.IMREAD_COLOR)
+    color_image = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    # img_bgr = cv2.imread("/home/eric/github/bedsheet-endpoints/src/image_data/RGB-images/IMG_1775.jpg")
+    # color_image = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
     if color_image is None:
         raise HTTPException(status_code=400, detail="Could not decode color image.")
 
@@ -90,8 +95,8 @@ async def detect_keypoints(
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
 
 
-@router.post("/detect_keypoints_image/", response_class=Response)
-async def detect_keypoints_image(
+@router.post("/detect_keypoints_visualization/", response_class=Response)
+async def detect_keypoints_visualization(
     method: DetectionMethod = Query(
         default=DetectionMethod.METACLIP,
         description="The keypoint detection method to use: 'metaclip' (default), 'depth', or 'rgb'."
@@ -165,18 +170,19 @@ async def capture_and_detect_keypoints(
 
 @router.post("/show_image_from_base64/", response_class=Response)
 async def show_image_from_base64(
-    item: Base64Image = Body(
-        ..., description="A JSON object containing a URL-safe base64 encoded string of an image."
+    item: ProcessedImagePayload = Body(
+        ..., description="A JSON object containing a base64 encoded string of an image."
     )
 ):
     """
-    Accepts a base64 encoded image string, decodes it, and returns it as an image.
+    Accepts a base64 encoded image string, decodes it, and returns it as an image, e.g., 
+    {"keypoints":[{"x":0,"y":0,"depth_m":0}],"processed_image":"string"}
 
-    - **image_data**: A URL-safe base64 encoded string of an image.
+    - **processed_image**: A base64 encoded string of an image.
     """
     try:
         # Decode the base64 string
-        decoded_image = base64.urlsafe_b64decode(item.image_data)
+        decoded_image = base64.b64decode(item.processed_image)
 
         # Detect the media type from the image content
         media_type = magic.from_buffer(decoded_image, mime=True)
