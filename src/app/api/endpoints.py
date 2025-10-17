@@ -17,6 +17,7 @@ from app.services.metaclip_keypoint_detector import MetaClipKeypointDetectorServ
 from app.services.realsense_capture import capture_images, NoDeviceError, FrameCaptureError, RealSenseError
 from app.services.rgb_keypoint_detector import rgb_detector_service
 from app.api.param_schema import DetectionMethod, ModelType, ProcessedImagePayload
+from app.common.utils import get_image_hash
 
 
 logger = logging.getLogger(__name__)
@@ -34,8 +35,6 @@ async def _process_and_detect(
     color_nparr = np.frombuffer(color_contents, np.uint8)
     img_bgr = cv2.imdecode(color_nparr, cv2.IMREAD_COLOR)
     color_image = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    # img_bgr = cv2.imread("/home/eric/github/bedsheet-endpoints/src/image_data/RGB-images/IMG_1775.jpg")
-    # color_image = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
     if color_image is None:
         raise HTTPException(status_code=400, detail="Could not decode color image.")

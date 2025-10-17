@@ -8,6 +8,7 @@ from typing import List, Tuple, Optional
 from app.models.clip_heatmap_model import ClipHeatmapModel
 from app.models.utils import thresholded_locations, combine_nearby_peaks
 from app.core.config import settings
+from app.common.utils import get_image_hash
 
 try:
     from ultralytics import YOLO
@@ -16,6 +17,7 @@ except ImportError:
     YOLO_AVAILABLE = False
     logging.warning("ultralytics is not installed. Segmentation will be skipped.")
 
+logger = logging.getLogger(__name__)
 
 class MetaClipKeypointDetectorService:
     """
@@ -100,7 +102,10 @@ class MetaClipKeypointDetectorService:
             return image
 
         try:
-            results = self.yolo_model(image, task="segment", verbose=False)
+            # Convert RGB to BGR for YOLO model
+            img_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            logger.info(f"img_bgr hash: {get_image_hash(img_bgr)}")
+            results = self.yolo_model(img_bgr, task="segment", verbose=False)
             if not (results and results[0].masks):
                 return image
 
@@ -113,33 +118,39 @@ class MetaClipKeypointDetectorService:
                     mask_binary = (mask > 0.5).astype(np.uint8) * 255
                     mask_resized = cv2.resize(mask_binary, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_NEAREST)
                     mask_all = cv2.bitwise_or(mask_all, mask_resized)
+                        
+            target_size = self.model_config['image_size']
+            image_resized_masked = cv2.resize(image, (target_size, target_size), interpolation=cv2.INTER_LINEAR)
+            image_resized_masked = image_resized_masked.astype(np.float32)
 
             if np.any(mask_all > 0):
-                logging.info(f"✅ Applied YOLO segmentation for classes {self.model_config['seg_classes']}")
-                masked_image = image.copy()
-                masked_image[mask_all == 0] = 0
-                return masked_image
+                logger.info(f"✅ Applied YOLO segmentation for classes {self.model_config['seg_classes']}")
+                mask_all_resized = cv2.resize(mask_all, (target_size, target_size), interpolation=cv2.INTER_NEAREST)
+                image_resized_masked[mask_all_resized == 0] = 0
+                return image_resized_masked
         except Exception as e:
             logging.error(f"⚠️ YOLO processing failed: {e}")
 
-        return image
+        return image_resized_masked
 
     def detect_keypoints(self, color_image: np.ndarray, depth_image: np.ndarray) -> Tuple[np.ndarray, List[dict]]:
         """Detects keypoints in the given color image."""
         orig_h, orig_w = color_image.shape[:2]
 
-        masked_image = self._apply_segmentation(color_image)
-
         target_size = self.model_config['image_size']
-        img_resized = cv2.resize(masked_image, (target_size, target_size), interpolation=cv2.INTER_LINEAR)
-        image_tensor = torch.from_numpy(img_resized).permute(2, 0, 1).float().div(255.0).unsqueeze(0).to(self.device)
+        image_resized_masked = self._apply_segmentation(color_image)
+        logger.info(f"hash of image_resized_masked before tensor conversion: {get_image_hash(image_resized_masked)}")
+        image_tensor = torch.from_numpy(image_resized_masked).permute(2, 0, 1).float().div(255.0).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
             heatmap = self.model(image_tensor).squeeze().cpu().numpy()
 
         heatmap /= heatmap.max()
         peaks = thresholded_locations(heatmap, threshold=0.3)
+        logger.info(f"peaks before combining: {peaks}")
+        
         combined_peaks = combine_nearby_peaks(peaks, distance_threshold=10)
+        logger.info(f"combined_peaks: {combined_peaks}")
 
         scale_x, scale_y = orig_w / target_size, orig_h / target_size
         final_keypoints = []
