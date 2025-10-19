@@ -36,7 +36,7 @@ class MetaClipKeypointDetectorService:
         # In a production system, this could come from a config file.
         configs = {
             'bedsheet': {
-                'path': 'weights/meta_clip_style_bedsheet_post_pretrained',
+                'path': 'weights/meta_clip_style_bedsheet_post_original',
                 'lora_r': 16, 'lora_alpha': 32, 'image_size': 256, 'use_text_prior': True,
                 'seg_classes': [3]
             },
@@ -145,7 +145,6 @@ class MetaClipKeypointDetectorService:
         with torch.no_grad():
             heatmap = self.model(image_tensor).squeeze().cpu().numpy()
 
-        heatmap /= heatmap.max()
         peaks = thresholded_locations(heatmap, threshold=0.3)
         logger.info(f"peaks before combining: {peaks}")
         
