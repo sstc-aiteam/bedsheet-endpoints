@@ -34,6 +34,7 @@ async def _process_and_detect(
     color_contents = await color_file.read()
     color_nparr = np.frombuffer(color_contents, np.uint8)
     img_bgr = cv2.imdecode(color_nparr, cv2.IMREAD_COLOR)
+    # Convert BGR to RGB
     color_image = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
     if color_image is None:
@@ -52,9 +53,9 @@ async def _process_and_detect(
         )
 
     detector_map = {
+        DetectionMethod.METACLIP: MetaClipKeypointDetectorService(model_type=model_type),
         DetectionMethod.RGB: rgb_detector_service,
-        DetectionMethod.DEPTH: depth_detector_service,
-        DetectionMethod.METACLIP: MetaClipKeypointDetectorService(model_type=model_type)
+        DetectionMethod.DEPTH: depth_detector_service
     }
     
     detector = detector_map.get(method)
@@ -125,6 +126,31 @@ async def detect_keypoints_visualization(
         logging.error(f"Error processing request in /detect_keypoints_image: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
 
+async def _capture_and_detect(
+    method: DetectionMethod,
+    model_type: Optional[ModelType]
+):
+    """Helper function to capture images and run detection."""
+    color_image, depth_image = capture_images()
+
+    detector_map = {
+        DetectionMethod.METACLIP: MetaClipKeypointDetectorService(model_type=model_type),
+        DetectionMethod.RGB: rgb_detector_service,
+        DetectionMethod.DEPTH: depth_detector_service
+    }
+
+    detector = detector_map.get(method)
+    if not detector:
+        # This case should ideally not be hit if enums are used correctly
+        # but is good for robustness.
+        raise HTTPException(status_code=400, detail=f"Invalid detection method: {method}")
+
+    if not hasattr(detector, 'detect_keypoints'):
+        raise HTTPException(status_code=500, detail=f"Detector for method '{method}' is not properly configured.")
+
+    processed_image, keypoints = detector.detect_keypoints(color_image, depth_image)
+    return processed_image, keypoints
+
 
 @router.post("/capture_and_detect_keypoints/")
 async def capture_and_detect_keypoints(
@@ -143,16 +169,7 @@ async def capture_and_detect_keypoints(
     The camera must be connected to the server.
     """
     try:
-        color_image, depth_image = capture_images()
-
-        if method == DetectionMethod.RGB:
-            processed_image, keypoints = rgb_detector_service.detect_keypoints(color_image, depth_image)
-        elif method == DetectionMethod.DEPTH:
-            processed_image, keypoints = depth_detector_service.detect_keypoints(color_image, depth_image)
-        else: # method == DetectionMethod.METACLIP
-            metaclip_service = MetaClipKeypointDetectorService(model_type=model_type)
-            processed_image, keypoints = metaclip_service.detect_keypoints(color_image, depth_image)
-
+        processed_image, keypoints = await _capture_and_detect(method, model_type)
         _, encoded_img = cv2.imencode('.PNG', processed_image)
         processed_img_base64 = base64.b64encode(encoded_img.tobytes()).decode('utf-8')
 
@@ -164,6 +181,38 @@ async def capture_and_detect_keypoints(
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logging.error(f"Error processing request in /capture_and_detect_keypoints: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+
+
+@router.post("/capture_and_detect_keypoints_visualization/", response_class=Response)
+async def capture_and_detect_keypoints_visualization(
+    method: DetectionMethod = Query(
+        default=DetectionMethod.RGB,
+        description="The keypoint detection method to use: 'metaclip' (default), 'depth', or 'rgb'."
+    ),
+    model_type: Optional[ModelType] = Query(
+        default=ModelType.MATTRESS,
+        description="The model type for MetaCLIP method: 'bedsheet', 'mattress', or 'fitted_sheet'. Only used when method is 'metaclip'."
+    )
+):
+    """
+    Captures images from a RealSense camera and returns the processed image with keypoints.
+    The camera must be connected to the server.
+    """
+    try:
+        processed_image, _ = await _capture_and_detect(method, model_type)
+        success, encoded_img = cv2.imencode('.png', processed_image)
+        if not success:
+            raise HTTPException(status_code=500, detail="Could not encode processed image.")
+
+        return Response(content=encoded_img.tobytes(), media_type="image/png")
+
+    except NoDeviceError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except (FrameCaptureError, RealSenseError) as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logging.error(f"Error processing request in /capture_and_detect_keypoints_visualization: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
 
 

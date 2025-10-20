@@ -146,10 +146,8 @@ class MetaClipKeypointDetectorService:
             heatmap = self.model(image_tensor).squeeze().cpu().numpy()
 
         peaks = thresholded_locations(heatmap, threshold=0.3)
-        logger.info(f"peaks before combining: {peaks}")
         
         combined_peaks = combine_nearby_peaks(peaks, distance_threshold=10)
-        logger.info(f"combined_peaks: {combined_peaks}")
 
         scale_x, scale_y = orig_w / target_size, orig_h / target_size
         final_keypoints = []
