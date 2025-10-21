@@ -85,7 +85,9 @@ async def detect_keypoints(
     """
     try:
         processed_image, keypoints = await _process_and_detect(method, model_type, color_file, depth_file)
-        _, encoded_img = cv2.imencode('.PNG', processed_image)
+        # Convert RGB back to BGR for CV2 encoding to image file
+        processed_image_bgr = cv2.cvtColor(processed_image, cv2.COLOR_RGB2BGR)
+        _, encoded_img = cv2.imencode('.PNG', processed_image_bgr)
         processed_img_base64 = base64.b64encode(encoded_img.tobytes()).decode('utf-8')
 
         return JSONResponse(content={"keypoints": keypoints, "processed_image": processed_img_base64})
@@ -116,7 +118,9 @@ async def detect_keypoints_visualization(
     """
     try:
         processed_image, _ = await _process_and_detect(method, model_type, color_file, depth_file)
-        success, encoded_img = cv2.imencode('.png', processed_image)
+        # Convert RGB back to BGR for CV2 encoding to image file
+        processed_image_bgr = cv2.cvtColor(processed_image, cv2.COLOR_RGB2BGR)
+        success, encoded_img = cv2.imencode('.png', processed_image_bgr)
         if not success:
             raise HTTPException(status_code=500, detail="Could not encode processed image.")
 
