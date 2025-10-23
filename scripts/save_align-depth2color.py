@@ -76,6 +76,7 @@ try:
 
         depth_image = np.asanyarray(aligned_depth_frame.get_data())
         color_image = np.asanyarray(color_frame.get_data())
+        color_image2 = color_image
 
         # Remove background - Set pixels further than clipping_distance to grey
         grey_color = 153
@@ -94,7 +95,7 @@ try:
 
         # Press 's' to save the images
         if key == ord('s'):
-            cv2.imwrite("color_image.png", color_image)
+            cv2.imwrite("color_image.png", color_image2)
             #cv2.imwrite("depth_image.png", depth_image)
             np.save("depth_data.npy", depth_image)
             print("Saved color_image.png, and depth_data.npy")
