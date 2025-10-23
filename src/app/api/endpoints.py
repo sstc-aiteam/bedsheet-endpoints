@@ -137,11 +137,12 @@ async def _capture_and_detect(
 ):
     """Helper function to capture images and run detection."""
     color_image, depth_image = capture_images()
+    processed_image_bgr = cv2.cvtColor(color_image, cv2.COLOR_RGB2BGR)
 
     # Save the captured color image
     timestamp = int(time.time())
     filename = f"captured_color_{timestamp}.png"
-    cv2.imwrite(filename, color_image)
+    cv2.imwrite(filename, processed_image_bgr)
     logger.info(f"Saved captured color image to {filename}")
 
     detector_map = {
