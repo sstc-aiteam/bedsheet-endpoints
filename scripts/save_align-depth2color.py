@@ -58,51 +58,32 @@ align = rs.align(align_to)
 
 # Streaming loop
 try:
-    while True:
-        # Get frameset of color and depth
-        frames = pipeline.wait_for_frames()
-        # frames.get_depth_frame() is a 640x360 depth image
+        profile = pipeline.start(config)
 
-        # Align the depth frame to color frame
+        # Create an align object to align depth frames to color frames
+        align_to = rs.stream.color
+        align = rs.align(align_to)
+
+        # The first few frames can be dark/overexposed.
+        # Allow auto-exposure to settle by capturing a few frames.
+        for _ in range(5):
+            pipeline.wait_for_frames()
+
+        # Get a coherent pair of frames
+        frames = pipeline.wait_for_frames()
         aligned_frames = align.process(frames)
 
         # Get aligned frames
-        aligned_depth_frame = aligned_frames.get_depth_frame() # aligned_depth_frame is a 848x480 depth image
+        aligned_depth_frame = aligned_frames.get_depth_frame()
         color_frame = aligned_frames.get_color_frame()
 
-        # Validate that both frames are valid
         if not aligned_depth_frame or not color_frame:
-            continue
+            raise Exception("Could not capture valid frames from RealSense camera.")
 
+        # Convert frames to numpy arrays
         depth_image = np.asanyarray(aligned_depth_frame.get_data())
         color_image = np.asanyarray(color_frame.get_data())
-        color_image2 = color_image
+        cv2.imwrite("captured_color_image.png", color_image)
 
-        # Remove background - Set pixels further than clipping_distance to grey
-        grey_color = 153
-        depth_image_3d = np.dstack((depth_image,depth_image,depth_image)) #depth image is 1 channel, color is 3 channels
-        bg_removed = np.where((depth_image_3d > clipping_distance) | (depth_image_3d <= 0), grey_color, color_image)
-
-        # Render images:
-        #   depth align to color on left
-        #   depth on right
-        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-        images = np.hstack((bg_removed, depth_colormap))
-
-        cv2.namedWindow('Align Example', cv2.WINDOW_NORMAL)
-        cv2.imshow('Align Example', images)
-        key = cv2.waitKey(1)
-
-        # Press 's' to save the images
-        if key == ord('s'):
-            cv2.imwrite("color_image.png", color_image2)
-            #cv2.imwrite("depth_image.png", depth_image)
-            np.save("depth_data.npy", depth_image)
-            print("Saved color_image.png, and depth_data.npy")
-
-        # Press esc or 'q' to close the image window
-        if key & 0xFF == ord('q') or key == 27:
-            cv2.destroyAllWindows()
-            break
 finally:
     pipeline.stop()
