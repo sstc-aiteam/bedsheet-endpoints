@@ -70,6 +70,8 @@ def capture_images():
         # Convert frames to numpy arrays
         depth_image = np.asanyarray(aligned_depth_frame.get_data())
         color_image = np.asanyarray(color_frame.get_data())
+        cv2.imwrite("captured_color_image_bef_return.png", color_image)
+
 
         return color_image, depth_image
 
