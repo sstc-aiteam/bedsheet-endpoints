@@ -3,6 +3,7 @@ import cv2
 import io
 import base64
 import logging
+import time
 
 from typing import Optional
 
@@ -136,6 +137,12 @@ async def _capture_and_detect(
 ):
     """Helper function to capture images and run detection."""
     color_image, depth_image = capture_images()
+
+    # Save the captured color image
+    timestamp = int(time.time())
+    filename = f"captured_color_{timestamp}.png"
+    cv2.imwrite(filename, color_image)
+    logger.info(f"Saved captured color image to {filename}")
 
     detector_map = {
         DetectionMethod.METACLIP: MetaClipKeypointDetectorService(model_type=model_type),
