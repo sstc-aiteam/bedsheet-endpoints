@@ -54,11 +54,11 @@ def capture_images():
 
         # The first few frames can be dark/overexposed.
         # Allow auto-exposure to settle by capturing a few frames.
-        for _ in range(5):
-            pipeline.wait_for_frames()
+        # for _ in range(5):
+        #     pipeline.wait_for_frames()
 
         # Get a coherent pair of frames
-        frames = pipeline.wait_for_frames(timeout_ms=5000)
+        frames = pipeline.wait_for_frames()
         aligned_frames = align.process(frames)
 
         # Get aligned frames
