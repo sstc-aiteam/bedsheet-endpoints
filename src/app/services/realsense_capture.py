@@ -34,10 +34,10 @@ def capture_images():
     pipeline = rs.pipeline()
     config = rs.config()
 
-    # Check for a connected RealSense device
-    context = rs.context()
-    if len(context.devices) == 0:
-        raise NoDeviceError("No RealSense device connected.")
+    # # Check for a connected RealSense device
+    # context = rs.context()
+    # if len(context.devices) == 0:
+    #     raise NoDeviceError("No RealSense device connected.")
     
     pipeline_wrapper = rs.pipeline_wrapper(pipeline)
     pipeline_profile = config.resolve(pipeline_wrapper)
