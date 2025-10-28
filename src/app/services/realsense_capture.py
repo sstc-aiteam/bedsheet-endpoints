@@ -84,4 +84,3 @@ class RealSenseCaptureService:
 
 # For dependency injection, we can use a single instance of the service.
 rs_capture_service = RealSenseCaptureService()
-capture_images = rs_capture_service.capture_images

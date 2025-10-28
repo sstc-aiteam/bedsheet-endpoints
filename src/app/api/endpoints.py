@@ -14,9 +14,9 @@ from fastapi import Body
 
 from app.services.depth_keypoint_detector import depth_detector_service
 from app.services.metaclip_keypoint_detector import MetaClipKeypointDetectorService
-from app.services.realsense_capture import capture_images, NoDeviceError, FrameCaptureError, RealSenseError
+from app.services.realsense_capture import RealSenseCaptureService, NoDeviceError, FrameCaptureError, RealSenseError
 from app.services.rgb_keypoint_detector import rgb_detector_service
-from app.api.param_schema import DetectionMethod, ModelType, ProcessedImagePayload, RealSenseCaptureService
+from app.api.param_schema import DetectionMethod, ModelType, ProcessedImagePayload
 from app.common.utils import get_image_hash
 
 
