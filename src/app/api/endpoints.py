@@ -164,7 +164,7 @@ async def _capture_and_detect(
 @router.post("/capture_and_detect_keypoints/")
 async def capture_and_detect_keypoints(
     method: DetectionMethod = Query(
-        default=DetectionMethod.RGB,
+        default=DetectionMethod.METACLIP,
         description="The keypoint detection method to use: 'metaclip' (default), 'depth', or 'rgb'."
     ),
     model_type: Optional[ModelType] = Query(
@@ -196,7 +196,7 @@ async def capture_and_detect_keypoints(
 @router.post("/capture_and_detect_keypoints_visualization/", response_class=Response)
 async def capture_and_detect_keypoints_visualization(
     method: DetectionMethod = Query(
-        default=DetectionMethod.RGB,
+        default=DetectionMethod.METACLIP,
         description="The keypoint detection method to use: 'metaclip' (default), 'depth', or 'rgb'."
     ),
     model_type: Optional[ModelType] = Query(
