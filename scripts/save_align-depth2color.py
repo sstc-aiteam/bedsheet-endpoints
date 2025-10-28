@@ -11,6 +11,7 @@ import pyrealsense2 as rs
 import numpy as np
 # Import OpenCV for easy image rendering
 import cv2
+from datetime import datetime
 
 # Create a pipeline
 pipeline = rs.pipeline()
@@ -34,8 +35,9 @@ if not found_rgb:
     print("The demo requires Depth camera with Color sensor")
     exit(0)
 
-config.enable_stream(rs.stream.depth, 848, 480, rs.format.z16, 30)
-config.enable_stream(rs.stream.color, 848, 480, rs.format.bgr8, 30)
+width, height, fps = 1280, 720, 30
+config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
+config.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
 
 # Start streaming
 profile = pipeline.start(config)
@@ -44,11 +46,6 @@ profile = pipeline.start(config)
 depth_sensor = profile.get_device().first_depth_sensor()
 depth_scale = depth_sensor.get_depth_scale()
 print("Depth Scale is: " , depth_scale)
-
-# We will be removing the background of objects more than
-#  clipping_distance_in_meters meters away
-clipping_distance_in_meters = 3 #1 meter
-clipping_distance = clipping_distance_in_meters / depth_scale
 
 # Create an align object
 # rs.align allows us to perform alignment of depth frames to others frames
@@ -77,16 +74,11 @@ try:
         depth_image = np.asanyarray(aligned_depth_frame.get_data())
         color_image = np.asanyarray(color_frame.get_data())
 
-        # Remove background - Set pixels further than clipping_distance to grey
-        grey_color = 153
-        depth_image_3d = np.dstack((depth_image,depth_image,depth_image)) #depth image is 1 channel, color is 3 channels
-        bg_removed = np.where((depth_image_3d > clipping_distance) | (depth_image_3d <= 0), grey_color, color_image)
-
         # Render images:
         #   depth align to color on left
         #   depth on right
         depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-        images = np.hstack((bg_removed, depth_colormap))
+        images = np.hstack((color_image, depth_colormap))
 
         cv2.namedWindow('Align Example', cv2.WINDOW_NORMAL)
         cv2.imshow('Align Example', images)
@@ -94,10 +86,12 @@ try:
 
         # Press 's' to save the images
         if key == ord('s'):
-            cv2.imwrite("color_image.png", color_image)
-            #cv2.imwrite("depth_image.png", depth_image)
-            np.save("depth_data.npy", depth_image)
-            print("Saved color_image.png, and depth_data.npy")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            color_filename = f"color_image_{timestamp}.png"
+            depth_filename = f"depth_data_{timestamp}.npy"
+            cv2.imwrite(color_filename, color_image)
+            np.save(depth_filename, depth_image)
+            print(f"Saved {color_filename} and {depth_filename}")
 
         # Press esc or 'q' to close the image window
         if key & 0xFF == ord('q') or key == 27:
