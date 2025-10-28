@@ -62,7 +62,11 @@ async def _process_and_detect(
     if not detector:
         raise HTTPException(status_code=400, detail=f"Invalid detection method: {method}")
 
-    return detector.detect_keypoints(color_image, depth_image)
+    processed_image, keypoints = detector.detect_keypoints(color_image, depth_image)
+    # Convert RGB back to BGR for CV2 encoding to image file
+    processed_image_bgr = cv2.cvtColor(processed_image, cv2.COLOR_RGB2BGR)
+
+    return processed_image_bgr, keypoints
 
 @router.post("/detect_keypoints/")
 async def detect_keypoints(
@@ -84,9 +88,7 @@ async def detect_keypoints(
     - **depth_file**: A .npy file containing the raw depth map (float).
     """
     try:
-        processed_image, keypoints = await _process_and_detect(method, model_type, color_file, depth_file)
-        # Convert RGB back to BGR for CV2 encoding to image file
-        processed_image_bgr = cv2.cvtColor(processed_image, cv2.COLOR_RGB2BGR)
+        processed_image_bgr, keypoints = await _process_and_detect(method, model_type, color_file, depth_file)
         _, encoded_img = cv2.imencode('.PNG', processed_image_bgr)
         processed_img_base64 = base64.b64encode(encoded_img.tobytes()).decode('utf-8')
 
@@ -117,9 +119,7 @@ async def detect_keypoints_visualization(
     - **depth_file**: A .npy file containing the raw depth map (float).
     """
     try:
-        processed_image, _ = await _process_and_detect(method, model_type, color_file, depth_file)
-        # Convert RGB back to BGR for CV2 encoding to image file
-        processed_image_bgr = cv2.cvtColor(processed_image, cv2.COLOR_RGB2BGR)
+        processed_image_bgr, _ = await _process_and_detect(method, model_type, color_file, depth_file)
         success, encoded_img = cv2.imencode('.png', processed_image_bgr)
         if not success:
             raise HTTPException(status_code=500, detail="Could not encode processed image.")
@@ -135,8 +135,9 @@ async def _capture_and_detect(
     model_type: Optional[ModelType]
 ):
     """Helper function to capture images and run detection."""
-    color_image, depth_image = capture_images()
-    cv2.imwrite("debug_color__capture_and_detect.png", color_image)
+    color_bgr_image, depth_image = capture_images()
+    # Convert BGR to RGB
+    color_image = cv2.cvtColor(color_bgr_image, cv2.COLOR_BGR2RGB)
 
     detector_map = {
         DetectionMethod.METACLIP: MetaClipKeypointDetectorService(model_type=model_type),
@@ -154,7 +155,10 @@ async def _capture_and_detect(
         raise HTTPException(status_code=500, detail=f"Detector for method '{method}' is not properly configured.")
 
     processed_image, keypoints = detector.detect_keypoints(color_image, depth_image)
-    return processed_image, keypoints
+    # Convert RGB back to BGR for CV2 encoding to image file
+    processed_image_bgr = cv2.cvtColor(processed_image, cv2.COLOR_RGB2BGR)
+
+    return processed_image_bgr, keypoints
 
 
 @router.post("/capture_and_detect_keypoints/")
