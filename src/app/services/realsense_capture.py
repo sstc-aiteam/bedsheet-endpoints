@@ -17,6 +17,26 @@ class FrameCaptureError(RealSenseError):
     pass
 
 # --- Capture Service ---
+pipeline = rs.pipeline()
+config = rs.config()
+
+# Check for a connected RealSense device
+context = rs.context()
+if len(context.devices) == 0:
+    raise NoDeviceError("No RealSense device connected.")
+
+# Configure and start the pipeline
+# Using common settings from the reference script.
+width, height, fps = 1280, 720, 30
+config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
+config.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
+
+profile = pipeline.start(config)
+
+# Create an align object to align depth frames to color frames
+align_to = rs.stream.color
+align = rs.align(align_to)
+
 
 def capture_images():
     """
@@ -30,27 +50,8 @@ def capture_images():
         FrameCaptureError: If frames cannot be captured.
         RealSenseError: For other camera runtime errors.
     """
-    pipeline = rs.pipeline()
-    config = rs.config()
-
-    # Check for a connected RealSense device
-    context = rs.context()
-    if len(context.devices) == 0:
-        raise NoDeviceError("No RealSense device connected.")
-
-    # Configure and start the pipeline
-    # Using common settings from the reference script.
-    width, height, fps = 848, 480, 30
-    config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
-    config.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
 
     try:
-        profile = pipeline.start(config)
-
-        # Create an align object to align depth frames to color frames
-        align_to = rs.stream.color
-        align = rs.align(align_to)
-
         # The first few frames can be dark/overexposed.
         # Allow auto-exposure to settle by capturing a few frames.
         for _ in range(5):
@@ -77,6 +78,6 @@ def capture_images():
         logging.error(f"RealSense runtime error: {e}", exc_info=True)
         # Wrap the generic RuntimeError in our custom exception
         raise RealSenseError(f"Error with RealSense camera: {e}") from e
-    finally:
-        # Ensure the pipeline is stopped
-        pipeline.stop()
+
+
+# pipeline.stop()
