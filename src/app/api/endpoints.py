@@ -8,7 +8,7 @@ from typing import Optional
 
 from fastapi.responses import JSONResponse
 import magic
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Query
 from fastapi.responses import Response
 from fastapi import Body
 
@@ -16,7 +16,7 @@ from app.services.depth_keypoint_detector import depth_detector_service
 from app.services.metaclip_keypoint_detector import MetaClipKeypointDetectorService
 from app.services.realsense_capture import capture_images, NoDeviceError, FrameCaptureError, RealSenseError
 from app.services.rgb_keypoint_detector import rgb_detector_service
-from app.api.param_schema import DetectionMethod, ModelType, ProcessedImagePayload
+from app.api.param_schema import DetectionMethod, ModelType, ProcessedImagePayload, RealSenseCaptureService
 from app.common.utils import get_image_hash
 
 
@@ -132,11 +132,12 @@ async def detect_keypoints_visualization(
 
 async def _capture_and_detect(
     method: DetectionMethod,
-    model_type: Optional[ModelType]
+    model_type: Optional[ModelType],
+    rs_capture_service: RealSenseCaptureService
 ):
     """Helper function to capture images and run detection."""
-    color_bgr_image, depth_image = capture_images()
-    # Convert BGR to RGB
+    # Use the service to capture images
+    color_bgr_image, depth_image = rs_capture_service.capture_images()
     color_image = cv2.cvtColor(color_bgr_image, cv2.COLOR_BGR2RGB)
 
     detector_map = {
@@ -170,7 +171,8 @@ async def capture_and_detect_keypoints(
     model_type: Optional[ModelType] = Query(
         default=ModelType.MATTRESS,
         description="The model type for MetaCLIP method: 'bedsheet', 'mattress', or 'fitted_sheet'. Only used when method is 'metaclip'."
-    )
+    ),
+    rs_capture_service: RealSenseCaptureService = Depends(RealSenseCaptureService)
 ):
     """
     Captures color and depth images from a connected Intel RealSense camera
@@ -178,7 +180,7 @@ async def capture_and_detect_keypoints(
     The camera must be connected to the server.
     """
     try:
-        processed_image, keypoints = await _capture_and_detect(method, model_type)
+        processed_image, keypoints = await _capture_and_detect(method, model_type, rs_capture_service)
         _, encoded_img = cv2.imencode('.PNG', processed_image)
         processed_img_base64 = base64.b64encode(encoded_img.tobytes()).decode('utf-8')
 
@@ -202,14 +204,15 @@ async def capture_and_detect_keypoints_visualization(
     model_type: Optional[ModelType] = Query(
         default=ModelType.MATTRESS,
         description="The model type for MetaCLIP method: 'bedsheet', 'mattress', or 'fitted_sheet'. Only used when method is 'metaclip'."
-    )
+    ),
+    rs_capture_service: RealSenseCaptureService = Depends(RealSenseCaptureService)
 ):
     """
     Captures images from a RealSense camera and returns the processed image with keypoints.
     The camera must be connected to the server.
     """
     try:
-        processed_image, _ = await _capture_and_detect(method, model_type)
+        processed_image, _ = await _capture_and_detect(method, model_type, rs_capture_service)
         success, encoded_img = cv2.imencode('.png', processed_image)
         if not success:
             raise HTTPException(status_code=500, detail="Could not encode processed image.")

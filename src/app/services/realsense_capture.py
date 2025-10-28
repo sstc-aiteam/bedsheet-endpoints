@@ -17,67 +17,71 @@ class FrameCaptureError(RealSenseError):
     pass
 
 # --- Capture Service ---
-pipeline = rs.pipeline()
-config = rs.config()
 
-# Check for a connected RealSense device
-context = rs.context()
-if len(context.devices) == 0:
-    raise NoDeviceError("No RealSense device connected.")
+class RealSenseCaptureService:
+    _instance = None
 
-# Configure and start the pipeline
-# Using common settings from the reference script.
-width, height, fps = 1280, 720, 30
-config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
-config.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(RealSenseCaptureService, cls).__new__(cls)
+            cls._instance._initialize()
+        return cls._instance
 
-profile = pipeline.start(config)
+    def _initialize(self):
+        """Initializes the RealSense pipeline and configuration."""
+        self.pipeline = rs.pipeline()
+        config = rs.config()
 
-# Create an align object to align depth frames to color frames
-align_to = rs.stream.color
-align = rs.align(align_to)
+        context = rs.context()
+        if len(context.devices) == 0:
+            raise NoDeviceError("No RealSense device connected.")
 
+        width, height, fps = 1280, 720, 30
+        config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
+        config.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
 
-def capture_images():
-    """
-    Initializes a RealSense camera, captures, and aligns one pair of color and depth frames.
+        try:
+            self.profile = self.pipeline.start(config)
+            logging.info("RealSense pipeline started.")
+        except RuntimeError as e:
+            raise RealSenseError(f"Failed to start RealSense pipeline: {e}") from e
 
-    Returns:
-        A tuple containing (color_image, depth_image).
+        self.align = rs.align(rs.stream.color)
 
-    Raises:
-        NoDeviceError: If no camera is found.
-        FrameCaptureError: If frames cannot be captured.
-        RealSenseError: For other camera runtime errors.
-    """
+    def capture_images(self):
+        """
+        Captures and aligns one pair of color and depth frames.
 
-    try:
-        # The first few frames can be dark/overexposed.
-        # Allow auto-exposure to settle by capturing a few frames.
-        for _ in range(5):
-            pipeline.wait_for_frames()
+        Returns:
+            A tuple containing (color_image, depth_image).
+        """
+        try:
+            for _ in range(5):
+                self.pipeline.wait_for_frames()
 
-        # Get a coherent pair of frames
-        frames = pipeline.wait_for_frames(timeout_ms=5000)
-        aligned_frames = align.process(frames)
+            frames = self.pipeline.wait_for_frames(timeout_ms=5000)
+            aligned_frames = self.align.process(frames)
 
-        # Get aligned frames
-        aligned_depth_frame = aligned_frames.get_depth_frame()
-        color_frame = aligned_frames.get_color_frame()
+            aligned_depth_frame = aligned_frames.get_depth_frame()
+            color_frame = aligned_frames.get_color_frame()
 
-        if not aligned_depth_frame or not color_frame:
-            raise FrameCaptureError("Could not capture valid frames from RealSense camera.")
+            if not aligned_depth_frame or not color_frame:
+                raise FrameCaptureError("Could not capture valid frames from RealSense camera.")
 
-        # Convert frames to numpy arrays
-        depth_image = np.asanyarray(aligned_depth_frame.get_data())
-        color_image = np.asanyarray(color_frame.get_data())
+            depth_image = np.asanyarray(aligned_depth_frame.get_data())
+            color_image = np.asanyarray(color_frame.get_data())
 
-        return color_image, depth_image
+            return color_image, depth_image
 
-    except RuntimeError as e:
-        logging.error(f"RealSense runtime error: {e}", exc_info=True)
-        # Wrap the generic RuntimeError in our custom exception
-        raise RealSenseError(f"Error with RealSense camera: {e}") from e
+        except RuntimeError as e:
+            logging.error(f"RealSense runtime error: {e}", exc_info=True)
+            raise RealSenseError(f"Error with RealSense camera: {e}") from e
 
+    def shutdown(self):
+        """Stops the RealSense pipeline."""
+        self.pipeline.stop()
+        logging.info("RealSense pipeline stopped.")
 
-# pipeline.stop()
+# For dependency injection, we can use a single instance of the service.
+rs_capture_service = RealSenseCaptureService()
+capture_images = rs_capture_service.capture_images

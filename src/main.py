@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from app.api.endpoints import router as api_router
 from app.services.depth_keypoint_detector import depth_detector_service
+from app.services.realsense_capture import rs_capture_service, NoDeviceError
 
 
 app_logger = logging.getLogger("app")
@@ -40,7 +41,17 @@ from swagger_redirect import get_swagger_ui_html
 @app.on_event("startup")
 async def startup_event():
     """Load machine learning models on startup."""
-    depth_detector_service.load_models()
+    try:
+        depth_detector_service.load_models()
+    except NoDeviceError as e:
+        app_logger.warning(f"Could not initialize RealSense camera on startup: {e}. The capture endpoints will not be available.")
+    except Exception as e:
+        app_logger.error(f"An unexpected error occurred during startup: {e}", exc_info=True)
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Gracefully shut down the RealSense pipeline."""
+    rs_capture_service.shutdown()
 
 app.include_router(api_router, prefix="/api/v1", tags=["Keypoint Detection"])
 
