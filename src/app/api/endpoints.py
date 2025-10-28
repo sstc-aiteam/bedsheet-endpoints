@@ -136,6 +136,7 @@ async def _capture_and_detect(
 ):
     """Helper function to capture images and run detection."""
     color_image, depth_image = capture_images()
+    cv2.imwrite("debug_color__capture_and_detect.png", color_image)
 
     detector_map = {
         DetectionMethod.METACLIP: MetaClipKeypointDetectorService(model_type=model_type),
