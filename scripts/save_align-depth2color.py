@@ -81,11 +81,11 @@ try:
         images = np.hstack((color_image, depth_colormap))
 
         cv2.namedWindow('Align Example', cv2.WINDOW_NORMAL)
-        cv2.imshow('Align Example', images)
+        cv2.imshow('Align Example', color_image)
         key = cv2.waitKey(1)
 
         # Press 's' to save the images
-        if key == ord('s'):
+        if key in (ord('s'), ord('S')):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             color_filename = f"color_image_{timestamp}.png"
             depth_filename = f"depth_data_{timestamp}.npy"
@@ -94,7 +94,7 @@ try:
             print(f"Saved {color_filename} and {depth_filename}")
 
         # Press esc or 'q' to close the image window
-        if key & 0xFF == ord('q') or key == 27:
+        if key & 0xFF in (ord('q'), ord('Q')) or key == 27:
             cv2.destroyAllWindows()
             break
 finally:
