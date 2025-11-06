@@ -43,7 +43,7 @@ class MetaClipKeypointDetectorService:
             'mattress': {
                 'path': 'weights/meta_clip_style_mattress_post_original',
                 'lora_r': 16, 'lora_alpha': 32, 'image_size': 256, 'use_text_prior': True,
-                'seg_classes': [0, 1, 2, 3]
+                'seg_classes': [0, 1, 2, 3, 4, 5, 6]
             },
             'fitted_sheet': {
                 'path': 'weights/meta_clip_style_fitted_sheet_post_original',
@@ -106,10 +106,8 @@ class MetaClipKeypointDetectorService:
             return image_resized
 
         try:
-            # Convert RGB to BGR for YOLO model
-            img_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-            logger.info(f"img_bgr hash: {get_image_hash(img_bgr)}")
-            results = self.yolo_model(img_bgr, task="segment", verbose=False)
+            logger.info(f"RGB color image hash: {get_image_hash(image)}")
+            results = self.yolo_model(image, task="segment", verbose=False)
             if not (results and results[0].masks):
                 return image_resized
 
