@@ -84,7 +84,7 @@ class MetaClipKeypointDetectorService:
         """Load the YOLO model for segmentation."""
         if not YOLO_AVAILABLE:
             return None
-        yolo_path = 'weights/yolo_finetuned/best_2.pt'
+        yolo_path = 'weights/yolo_finetuned/best.pt'
         if os.path.exists(yolo_path):
             try:
                 yolo_model = YOLO(yolo_path)
