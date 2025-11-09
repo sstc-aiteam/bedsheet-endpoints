@@ -2,8 +2,10 @@ import numpy as np
 import pyrealsense2 as rs
 import logging
 
-# --- Custom Exceptions ---
+# Set up logging for clarity (Optional, but good practice)
+logger = logging.getLogger(__name__)
 
+# --- Custom Exceptions 
 class RealSenseError(Exception):
     """Base exception for RealSense camera errors."""
     pass
@@ -20,45 +22,83 @@ class FrameCaptureError(RealSenseError):
 
 class RealSenseCaptureService:
     _instance = None
+    
+    # Define default stream parameters as class/instance attributes for easy access
+    DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_FPS = 848, 480, 30
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(RealSenseCaptureService, cls).__new__(cls)
-            cls._instance._initialize()
+
+            cls._instance.is_initialized = False
+            cls._instance.align = None # Initialize to None
         return cls._instance
 
     def _initialize(self):
-        """Initializes the RealSense pipeline and configuration."""
-        self.pipeline = rs.pipeline()
-        config = rs.config()
-
-        context = rs.context()
-        if len(context.devices) == 0:
-            raise NoDeviceError("No RealSense device connected.")
-
-        width, height, fps = 1280, 720, 30
-        config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
-        config.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
+        """Initializes the RealSense pipeline and configuration, only if not already initialized."""
+        
+        if self.is_initialized:
+            logger.info("RealSense pipeline is already initialized.")
+            return
 
         try:
+            logger.info("Attempting to initialize RealSense pipeline...")
+            self.pipeline = rs.pipeline()
+            config = rs.config()
+            
+            # 1. Check for device connection
+            context = rs.context()
+            if len(context.devices) == 0:
+                logger.warning("No RealSense device connected.")
+                raise NoDeviceError("No RealSense device connected.")
+        
+            # 2. Configure streams
+            width, height, fps = self.DEFAULT_WIDTH, self.DEFAULT_HEIGHT, self.DEFAULT_FPS
+            config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
+            config.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
+
+            # 3. Start pipeline
             self.profile = self.pipeline.start(config)
-            logging.info("RealSense pipeline started.")
+            self.align = rs.align(rs.stream.color)
+            
+            self.is_initialized = True
+            logging.info("✅ RealSense pipeline started successfully.")
+            
         except RuntimeError as e:
+            # Catch all expected (and unexpected) errors during initialization
+            self.is_initialized = False
+            # Clean up the pipeline if it was partially started
+            try:
+                self.pipeline.stop()
+            except RuntimeError:
+                pass # Ignore if stop fails (likely because it wasn't started)
+            
             raise RealSenseError(f"Failed to start RealSense pipeline: {e}") from e
 
-        self.align = rs.align(rs.stream.color)
 
     def capture_images(self):
         """
         Captures and aligns one pair of color and depth frames.
+        Will attempt to re-initialize the device if not connected.
 
         Returns:
             A tuple containing (color_image, depth_image).
         """
         try:
-            for _ in range(5):
-                self.pipeline.wait_for_frames()
+            # 1. Check/Re-initialize device if not ready       
+            if not self.is_initialized:
+                self._initialize() # Retry connection
+                if not self.is_initialized:
+                    # If retry failed, return empty images as requested
+                    raise RealSenseError("RealSense device is not initialized after retry.")
 
+            # 2. Capture frames (only runs if self.is_initialized is True)
+            # Skip initial frames for auto-exposure/gain to settle
+            for _ in range(5):
+                # Using 100ms timeout for quick discard if device is flaky
+                self.pipeline.wait_for_frames(timeout_ms=100) 
+
+            # Wait for the actual frames to process
             frames = self.pipeline.wait_for_frames(timeout_ms=5000)
             aligned_frames = self.align.process(frames)
 
@@ -70,17 +110,57 @@ class RealSenseCaptureService:
 
             depth_image = np.asanyarray(aligned_depth_frame.get_data())
             color_image = np.asanyarray(color_frame.get_data())
-
+            
             return color_image, depth_image
 
         except RuntimeError as e:
-            logging.error(f"RealSense runtime error: {e}", exc_info=True)
+            # This handles errors during frame capture (e.g., device unplugged mid-run)
+            logging.error(f"RealSense runtime error during capture: {e}. Device is now considered uninitialized.", exc_info=True)
             raise RealSenseError(f"Error with RealSense camera: {e}") from e
 
     def shutdown(self):
-        """Stops the RealSense pipeline."""
-        self.pipeline.stop()
-        logging.info("RealSense pipeline stopped.")
+        """Stops the RealSense pipeline, checking if it was ever initialized."""
+        if self.is_initialized:
+            try:
+                self.pipeline.stop()
+                logger.info("RealSense pipeline stopped.")
+            except Exception as e:
+                logger.error(f"Error while stopping pipeline: {e}")
+            finally:
+                self.is_initialized = False # Ensure the flag is updated
+        else:
+            logger.info("RealSense pipeline was not active/initialized, nothing to stop.")
 
 # For dependency injection, we can use a single instance of the service.
+# This will now attempt to initialize, but won't crash if it fails.
 rs_capture_service = RealSenseCaptureService()
+
+# --- Example Usage ---
+
+def main():
+    # Service might fail to initialize here if no device is connected, but the app continues
+    service = rs_capture_service
+    
+    print("\n--- First Capture Attempt ---")
+    color, depth = service.capture_images()
+    print(f"Color Image Shape: {color.shape}")
+    print(f"Depth Image Shape: {depth.shape}")
+    print(f"Service initialized status: {service.is_initialized}")
+    
+    if not service.is_initialized:
+        print("\n* If you connect a RealSense device now, the next call will try to connect! *")
+    
+    # Imagine a delay here where the device is either connected or disconnected
+    import time
+    time.sleep(1) 
+    
+    print("\n--- Second Capture Attempt (Retry or Normal Capture) ---")
+    color2, depth2 = service.capture_images()
+    print(f"Color Image Shape: {color2.shape}")
+    print(f"Depth Image Shape: {depth2.shape}")
+    print(f"Service initialized status: {service.is_initialized}")
+    
+    service.shutdown()
+
+if __name__ == "__main__":
+    main()
