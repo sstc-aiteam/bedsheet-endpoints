@@ -17,6 +17,8 @@ env
 
 # RGB and Depth image files
 image_data/
+*.png
+*.npy
 
 # results 
 inference_results/

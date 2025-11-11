@@ -96,10 +96,10 @@ class RealSenseCaptureService:
             # Skip initial frames for auto-exposure/gain to settle
             for _ in range(5):
                 # Using 100ms timeout for quick discard if device is flaky
-                self.pipeline.wait_for_frames(timeout_ms=100) 
+                self.pipeline.wait_for_frames(timeout_ms=5000) 
 
             # Wait for the actual frames to process
-            frames = self.pipeline.wait_for_frames(timeout_ms=5000)
+            frames = self.pipeline.wait_for_frames(timeout_ms=3000)
             aligned_frames = self.align.process(frames)
 
             aligned_depth_frame = aligned_frames.get_depth_frame()

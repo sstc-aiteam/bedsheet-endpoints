@@ -4,7 +4,7 @@ from typing import List
 class Settings(BaseSettings):
     # Model paths - assumes running from project root
     YOLO_MODEL_PATH: str = "weights/yolo_finetuned/best.pt"
-    KEYPOINT_MODEL_PATH: str = "weights/keypoint_model_vit_depth.pth"
+    KEYPOINT_MODEL_PATH: str = "weights_depth/keypoint_model_vit_depth.pth"
     YOLO_BASE_MODEL_PATH: str = 'yolov8l.pt'
 
     # Detection parameters

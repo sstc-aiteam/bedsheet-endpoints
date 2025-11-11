@@ -35,7 +35,7 @@ if not found_rgb:
     print("The demo requires Depth camera with Color sensor")
     exit(0)
 
-width, height, fps = 1280, 720, 30
+width, height, fps = 848, 480, 30
 config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
 config.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
 
