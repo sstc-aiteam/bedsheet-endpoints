@@ -10,6 +10,7 @@ class ModelType(str, Enum):
     """Enum for selecting the MetaCLIP model type."""
     MATTRESS = "mattress"
     FITTED_SHEET = "fitted_sheet"
+    FITTED_SHEET_INVERSE = "fitted_sheet_inverse"
     BEDSHEET = "bedsheet"
 
 

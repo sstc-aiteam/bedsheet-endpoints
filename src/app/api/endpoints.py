@@ -76,7 +76,7 @@ async def detect_keypoints(
     ),
     model_type: Optional[ModelType] = Query(
         default=ModelType.MATTRESS,
-        description="The model type for MetaCLIP method: 'bedsheet', 'mattress', or 'fitted_sheet'. Only used when method is 'metaclip'."
+        description="The model type for MetaCLIP method: 'bedsheet', 'mattress', 'fitted_sheet', or 'fitted_sheet_inverse'. Only used when method is 'metaclip'."
     ),
     color_file: UploadFile = File(...), 
     depth_file: UploadFile = File(...)
@@ -107,7 +107,7 @@ async def detect_keypoints_visualization(
     ),
     model_type: Optional[ModelType] = Query(
         default=ModelType.MATTRESS,
-        description="The model type for MetaCLIP method: 'bedsheet', 'mattress', or 'fitted_sheet'. Only used when method is 'metaclip'."
+        description="The model type for MetaCLIP method: 'bedsheet', 'mattress', 'fitted_sheet', or 'fitted_sheet_inverse'. Only used when method is 'metaclip'."
     ),
     color_file: UploadFile = File(...),
     depth_file: UploadFile = File(...)
@@ -170,7 +170,7 @@ async def capture_and_detect_keypoints(
     ),
     model_type: Optional[ModelType] = Query(
         default=ModelType.MATTRESS,
-        description="The model type for MetaCLIP method: 'bedsheet', 'mattress', or 'fitted_sheet'. Only used when method is 'metaclip'."
+        description="The model type for MetaCLIP method: 'bedsheet', 'mattress', 'fitted_sheet', or 'fitted_sheet_inverse'. Only used when method is 'metaclip'."
     ),
     rs_capture_service: RealSenseCaptureService = Depends(RealSenseCaptureService)
 ):
@@ -203,7 +203,7 @@ async def capture_and_detect_keypoints_visualization(
     ),
     model_type: Optional[ModelType] = Query(
         default=ModelType.MATTRESS,
-        description="The model type for MetaCLIP method: 'bedsheet', 'mattress', or 'fitted_sheet'. Only used when method is 'metaclip'."
+        description="The model type for MetaCLIP method: 'bedsheet', 'mattress', 'fitted_sheet', or 'fitted_sheet_inverse'. Only used when method is 'metaclip'."
     ),
     rs_capture_service: RealSenseCaptureService = Depends(RealSenseCaptureService)
 ):
