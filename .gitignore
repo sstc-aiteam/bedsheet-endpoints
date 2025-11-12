@@ -15,10 +15,11 @@ env
 *.pt
 *.pth
 
-# RGB and Depth image files
+# RGB, Depth, and Point Cloud image files
 image_data/
 *.png
 *.npy
+*.ply
 
 # results 
 inference_results/
