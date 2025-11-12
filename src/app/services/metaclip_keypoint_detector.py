@@ -149,6 +149,7 @@ class MetaClipKeypointDetectorService:
         with torch.no_grad():
             heatmap = self.model(image_tensor).squeeze().cpu().numpy()
         logger.info(f"Heatmap shape: {heatmap.shape}")
+        logger.info(f"hash of heatmap: {get_image_hash(heatmap)}")
 
         peaks = thresholded_locations(heatmap, threshold=0.3)
         
