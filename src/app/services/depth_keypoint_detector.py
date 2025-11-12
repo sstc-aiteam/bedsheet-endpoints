@@ -6,8 +6,10 @@ from scipy.ndimage import label
 from ultralytics import YOLO
 
 from app.models.yolo_vit import HybridKeypointNet
+from app.services.realsense_capture import RealSenseCaptureService
 from app.models.utils import YoloBackbone
 from app.core.config import settings
+from app.common.utils import format_3d_coordinates
 
 
 class DepthKeypointDetector:
@@ -54,13 +56,17 @@ class DepthKeypointDetector:
         
         return mask_all
 
-    def detect_keypoints(self, color_image: np.ndarray, depth_image: np.ndarray):
+    def detect_keypoints(self,
+                         color_image: np.ndarray,
+                         depth_image: np.ndarray,
+                         rs_service: RealSenseCaptureService = None
+                         ):
         """The main detection pipeline."""
         c_copy = color_image.copy()
         d_copy = depth_image.copy()
         
         mask = self._extract_mask(c_copy)
-        keypoints = []
+        final_keypoints = []
         
         if np.sum(mask) > 0:
             c_copy[mask == 0] = 0
@@ -84,10 +90,16 @@ class DepthKeypointDetector:
                     orig_y = int(y * (H / 128))
 
                     distance_meters = float(depth_image[orig_y, orig_x]) * settings.DEPTH_SCALE
-                    keypoints.append({"x": orig_x, "y": orig_y, "depth_m": round(distance_meters, 5)})
+                    point_3d = rs_service.deproject_pixel_to_point(orig_x, orig_y, distance_meters) if rs_service else []
+                    final_keypoints.append({
+                        "color": {"x": orig_x, 
+                                  "y": orig_y, 
+                                  "depth_m": round(distance_meters, 5)},
+                        "point3d_m": format_3d_coordinates(point_3d)
+                    })
                     cv2.circle(color_image, (orig_x, orig_y), 5, (0, 0, 255), -1)
             
-        return color_image, keypoints
+        return color_image, final_keypoints
 
     @staticmethod
     def _depth_map_to_image(depth_map: np.ndarray) -> np.ndarray:

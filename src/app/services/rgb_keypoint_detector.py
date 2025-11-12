@@ -6,8 +6,10 @@ import logging
 from ultralytics import YOLO
 
 from app.models_rgb.hybrid_keypoint_net import HybridKeypointNet
+from app.services.realsense_capture import RealSenseCaptureService
 from app.models_rgb.model_utils import EnhancedYoloBackbone, thresholded_locations
 from app.core.config import settings
+from app.common.utils import format_3d_coordinates
 
 
 def _get_base_module(module):
@@ -124,7 +126,11 @@ class RGBKeypointDetectorService:
         model.eval()
         return model
 
-    def detect_keypoints(self, color_image: np.ndarray, depth_image: np.ndarray):
+    def detect_keypoints(self,
+                         color_image: np.ndarray,
+                         depth_image: np.ndarray,
+                         rs_service: RealSenseCaptureService
+                         ):
         orig_h, orig_w = color_image.shape[:2]
 
         # --- Segmentation (Optional) ---
@@ -192,7 +198,13 @@ class RGBKeypointDetectorService:
                 orig_x = int(col * scale_x)
                 
                 distance_meters = float(depth_image[orig_y, orig_x]) * settings.DEPTH_SCALE
-                final_keypoints.append({"x": orig_x, "y": orig_y, "depth_m": round(distance_meters, 5)})
+                point_3d = rs_service.deproject_pixel_to_point(orig_x, orig_y, distance_meters) if rs_service else []
+                final_keypoints.append({
+                    "color": {"x": orig_x, 
+                              "y": orig_y,
+                              "depth_m": round(distance_meters, 5)},
+                    "point3d_m": format_3d_coordinates(point_3d)
+                })
                 cv2.circle(processed_image, (orig_x, orig_y), 5, (0, 0, 255), -1)
         else:
             # Fallback to argmax if no peaks found

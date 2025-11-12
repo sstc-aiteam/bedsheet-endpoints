@@ -7,7 +7,6 @@ import logging
 from typing import Optional
 
 from fastapi.responses import JSONResponse
-import magic
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Query
 from fastapi.responses import Response
 from fastapi import Body
@@ -155,7 +154,7 @@ async def _capture_and_detect(
     if not hasattr(detector, 'detect_keypoints'):
         raise HTTPException(status_code=500, detail=f"Detector for method '{method}' is not properly configured.")
 
-    processed_image, keypoints = detector.detect_keypoints(color_image, depth_image)
+    processed_image, keypoints = detector.detect_keypoints(color_image, depth_image, rs_capture_service)
     # Convert RGB back to BGR for CV2 encoding to image file
     processed_image_bgr = cv2.cvtColor(processed_image, cv2.COLOR_RGB2BGR)
 
@@ -243,9 +242,9 @@ async def show_image_from_base64(
     try:
         # Decode the base64 string
         decoded_image = base64.b64decode(item.processed_image)
-
-        # Detect the media type from the image content
-        media_type = magic.from_buffer(decoded_image, mime=True)
+        
+        # The images are consistently encoded as PNGs by other endpoints.
+        media_type = "image/png"
 
         # Return the image as a response.
         # The browser will render this as an image.

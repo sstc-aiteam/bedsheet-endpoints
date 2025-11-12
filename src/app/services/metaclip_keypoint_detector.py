@@ -3,12 +3,13 @@ import cv2
 import numpy as np
 import torch
 import logging
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 from app.models.clip_heatmap_model import ClipHeatmapModel
+from app.services.realsense_capture import RealSenseCaptureService
 from app.models.utils import thresholded_locations, combine_nearby_peaks
 from app.core.config import settings
-from app.common.utils import get_image_hash
+from app.common.utils import get_image_hash, format_3d_coordinates
 
 try:
     from ultralytics import YOLO
@@ -136,7 +137,11 @@ class MetaClipKeypointDetectorService:
 
         return image_resized
 
-    def detect_keypoints(self, color_image: np.ndarray, depth_image: np.ndarray) -> Tuple[np.ndarray, List[dict]]:
+    def detect_keypoints(self,
+                         color_image: np.ndarray,
+                         depth_image: np.ndarray,
+                         rs_service: RealSenseCaptureService = None
+                         ) -> Tuple[np.ndarray, List[dict]]:
         """Detects keypoints in the given color image."""
         orig_h, orig_w = color_image.shape[:2]
 
@@ -163,7 +168,13 @@ class MetaClipKeypointDetectorService:
             y, x = p
             orig_x, orig_y = int(x * scale_x), int(y * scale_y)
             distance_m = float(depth_image[orig_y, orig_x]) * settings.DEPTH_SCALE
-            final_keypoints.append({"x": orig_x, "y": orig_y, "depth_m": round(distance_m, 5)})
+            point_3d = rs_service.deproject_pixel_to_point(orig_x, orig_y, distance_m) if rs_service else []
+            final_keypoints.append({
+                "rgbd": {"x": orig_x, 
+                         "y": orig_y,
+                         "depth_m": round(distance_m, 5)},
+                "point3d_m": format_3d_coordinates(point_3d)
+            })
             cv2.circle(processed_image, (orig_x, orig_y), 5, (0, 255, 0), -1)
 
         return processed_image, final_keypoints
