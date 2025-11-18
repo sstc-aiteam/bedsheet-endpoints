@@ -58,6 +58,8 @@ bedsheet-endpoints/
 
 
 ### Reference
+- [SDK Manager](https://developer.nvidia.com/sdk-manager)
+  - [Jetson AGX Orin 完整刷機](https://medium.com/@EricChou711/nvidia-jetson-agx-orin-%E5%AE%8C%E6%95%B4%E5%88%B7%E6%A9%9F-%E5%AE%89%E8%A3%9D-tensorflow-pytorch-opencv-%E6%95%99%E5%AD%B8-ubuntu%E7%AF%87-sdk-manager-b3395f654f75) 
 - [Install PyTorch on the Jetson Orin Nano running JetPack 6.2](https://ninjalabo.ai/blogs/jetson_pytorch.html)
 - [Installing PyTorch for Jetson Platform](https://docs.nvidia.com/deeplearning/frameworks/install-pytorch-jetson-platform/index.html)  
 - [Your First Jetson Container](https://developer.nvidia.com/embedded/learn/tutorials/jetson-container)
