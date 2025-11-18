@@ -32,6 +32,7 @@ class RealSenseCaptureService:
 
             cls._instance.is_initialized = False
             cls._instance.align = None # Initialize to None
+            cls._instance.depth_intrinsics = None
         return cls._instance
 
     def _initialize(self):
@@ -60,6 +61,10 @@ class RealSenseCaptureService:
             # 3. Start pipeline
             self.profile = self.pipeline.start(config)
             self.align = rs.align(rs.stream.color)
+
+            # 4. Get and store intrinsics
+            depth_profile = self.profile.get_stream(rs.stream.depth).as_video_stream_profile()
+            self.depth_intrinsics = depth_profile.get_intrinsics()
             
             self.is_initialized = True
             logging.info("✅ RealSense pipeline started successfully.")
@@ -118,6 +123,20 @@ class RealSenseCaptureService:
             logging.error(f"RealSense runtime error during capture: {e}. Device is now considered uninitialized.", exc_info=True)
             raise RealSenseError(f"Error with RealSense camera: {e}") from e
 
+    def deproject_pixel_to_point(self, x: int, y: int, depth: float) -> list:
+        """
+        Deprojects a 2D pixel with depth to a 3D point in camera space.
+
+        Args:
+            x: The x-coordinate of the pixel.
+            y: The y-coordinate of the pixel.
+            depth: The depth value at (x, y) in meters.
+
+        Returns:
+            A list [X, Y, Z] representing the 3D point.
+        """
+        return rs.rs2_deproject_pixel_to_point(self.depth_intrinsics, [x, y], depth)
+
     def shutdown(self):
         """Stops the RealSense pipeline, checking if it was ever initialized."""
         if self.is_initialized:
@@ -127,7 +146,9 @@ class RealSenseCaptureService:
             except Exception as e:
                 logger.error(f"Error while stopping pipeline: {e}")
             finally:
-                self.is_initialized = False # Ensure the flag is updated
+                self.is_initialized = False
+                self.align = None
+                self.depth_intrinsics = None
         else:
             logger.info("RealSense pipeline was not active/initialized, nothing to stop.")
 

@@ -44,3 +44,15 @@ def save_captured_images(color_bgr_image: np.ndarray, depth_image: np.ndarray, s
         logger.info(f"Saved captured images: {color_filename}, {depth_filename}")
     except Exception as e:
         logger.error(f"Failed to save captured images: {e}", exc_info=True)
+
+
+def format_3d_coordinates(point_3d: list) -> dict:
+    """Formats 3D coordinates as a dictionary."""
+    if not point_3d or len(point_3d) != 3:
+        return {}
+    
+    coord_text = {"x": round(point_3d[0], 5),  
+                  "y": round(point_3d[1], 5), 
+                  "z": round(point_3d[2], 5)}
+    
+    return coord_text

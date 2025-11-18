@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class DetectionMethod(str, Enum):
     """Enum for selecting the keypoint detection method."""
     METACLIP = "metaclip"
@@ -18,11 +19,20 @@ class ModelType(str, Enum):
 from pydantic import BaseModel
 from typing import List, Optional
 
-class Keypoint(BaseModel):
+
+class RGBDepth(BaseModel):
     x: int
     y: int
     depth_m: float
 
+class Keypoint3D(BaseModel):
+    x: Optional[float] = None
+    y: Optional[float] = None
+    z: Optional[float] = None
+
+class Keypoint(BaseModel):
+    rgbd: RGBDepth
+    point3d_m: Keypoint3D
 
 class ProcessedImagePayload(BaseModel):
     keypoints: Optional[List[Keypoint]] = None
