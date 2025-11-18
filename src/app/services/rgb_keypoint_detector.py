@@ -129,7 +129,7 @@ class RGBKeypointDetectorService:
     def detect_keypoints(self,
                          color_image: np.ndarray,
                          depth_image: np.ndarray,
-                         rs_service: RealSenseCaptureService
+                         rs_service: RealSenseCaptureService = None
                          ):
         orig_h, orig_w = color_image.shape[:2]
 

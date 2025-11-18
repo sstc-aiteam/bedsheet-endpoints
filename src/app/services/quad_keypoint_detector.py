@@ -7,6 +7,8 @@ import numpy as np
 from ultralytics import YOLO
 
 from app.core.config import settings
+from app.common.utils import format_3d_coordinates
+from app.services.realsense_capture import RealSenseCaptureService
 
 logger = logging.getLogger(__name__)
 
@@ -209,10 +211,17 @@ class QuadKeypointDetectorService:
             logger.error(f"Failed to load YOLO model from {model_path}: {e}", exc_info=True)
             raise
 
-    def detect_keypoints(self, color_image: np.ndarray, depth_image: np.ndarray) -> Tuple[np.ndarray, List[dict]]:
+    def detect_keypoints(self, 
+                         color_image: np.ndarray, 
+                         depth_image: np.ndarray, 
+                         rs_service: RealSenseCaptureService = None
+                         ) -> Tuple[np.ndarray, List[dict]]:
         """
         Detects four corner keypoints of a fitted sheet by fitting a quadrilateral to its segmentation mask.
         """
+        if rs_service is None:
+            logger.info("RealSense service not provided to Quad detector; 3D points will not be calculated.")
+        
         # The script expects BGR, but the endpoint provides RGB. We use the provided RGB.
         mask = segment_fitted_sheet(color_image, self.model, ALLOWED_CLASSES)
         if mask is None:
@@ -247,15 +256,23 @@ class QuadKeypointDetectorService:
         processed_image = color_image.copy()
 
         # Draw the polygon and corners on the image
-        poly = np.round(quad_final).astype(np.int32).reshape(-1, 1, 2)
-        cv2.polylines(processed_image, [poly], True, (0, 255, 0), 2)
+        #poly = np.round(quad_final).astype(np.int32).reshape(-1, 1, 2)
+        #cv2.polylines(processed_image, [poly], True, (0, 255, 0), 2)
 
         for i, point in enumerate(quad_final):
             x, y = int(round(point[0])), int(round(point[1]))
             depth_m = float(depth_image[y, x]) * settings.DEPTH_SCALE if 0 <= y < depth_image.shape[0] and 0 <= x < depth_image.shape[1] else 0.0
-            final_keypoints.append({"x": x, "y": y, "depth_m": round(depth_m, 5)})
-            cv2.circle(processed_image, (x, y), 6, (0, 0, 255), -1)
-            cv2.putText(processed_image, str(i), (x + 5, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+            point_3d = rs_service.deproject_pixel_to_point(x, y, depth_m) if rs_service else []
+            final_keypoints.append({
+                "rgbd": {"x": x, 
+                         "y": y, 
+                         "depth_m": round(depth_m, 5)},
+                "point3d_m": format_3d_coordinates(point_3d)
+            })
+
+            cv2.circle(processed_image, (x, y), 6, (0, 255, 0), -1)
+            # mark the index of the corner
+            #cv2.putText(processed_image, str(i), (x + 5, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
 
         return processed_image, final_keypoints
 

@@ -63,7 +63,7 @@ async def _process_and_detect(
     if not detector:
         raise HTTPException(status_code=400, detail=f"Invalid detection method: {method}")
 
-    processed_image, keypoints = detector.detect_keypoints(color_image, depth_image)
+    processed_image, keypoints = detector.detect_keypoints(color_image, depth_image, rs_service=None) # rs_service is not available for file uploads
     # Convert RGB back to BGR for CV2 encoding to image file
     processed_image_bgr = cv2.cvtColor(processed_image, cv2.COLOR_RGB2BGR)
 
