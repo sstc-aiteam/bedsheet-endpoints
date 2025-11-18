@@ -31,3 +31,4 @@ inference_results/
 # Demo scripts
 src/rgb_keypoint_detection.py
 src/inference_demo_simple.py
+src/fitted_sheet_homography_keypoint_extraction.py

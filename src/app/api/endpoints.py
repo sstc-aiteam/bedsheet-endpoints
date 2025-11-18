@@ -16,8 +16,9 @@ from app.services.depth_keypoint_detector import depth_detector_service
 from app.services.metaclip_keypoint_detector import MetaClipKeypointDetectorService
 from app.services.realsense_capture import RealSenseCaptureService, NoDeviceError, FrameCaptureError, RealSenseError
 from app.services.rgb_keypoint_detector import rgb_detector_service
-from app.api.param_schema import DetectionMethod, ModelType, ProcessedImagePayload
-from app.common.utils import get_image_hash
+from app.services.quad_keypoint_detector import quad_detector_service
+from app.api.param_schema import DetectionMethod, ModelType, ProcessedImagePayload, Keypoint
+from app.common.utils import get_image_hash, save_captured_images
 
 
 logger = logging.getLogger(__name__)
@@ -55,7 +56,8 @@ async def _process_and_detect(
     detector_map = {
         DetectionMethod.METACLIP: MetaClipKeypointDetectorService(model_type=model_type),
         DetectionMethod.RGB: rgb_detector_service,
-        DetectionMethod.DEPTH: depth_detector_service
+        DetectionMethod.DEPTH: depth_detector_service,
+        DetectionMethod.QUADRILATERAL: quad_detector_service,
     }
     
     detector = detector_map.get(method)
@@ -72,7 +74,7 @@ async def _process_and_detect(
 async def detect_keypoints(
     method: DetectionMethod = Query(
         default=DetectionMethod.METACLIP,
-        description="The keypoint detection method to use: 'metaclip' (default), 'depth', or 'rgb'."
+        description="The keypoint detection method to use."
     ),
     model_type: Optional[ModelType] = Query(
         default=ModelType.MATTRESS,
@@ -103,7 +105,7 @@ async def detect_keypoints(
 async def detect_keypoints_visualization(
     method: DetectionMethod = Query(
         default=DetectionMethod.METACLIP,
-        description="The keypoint detection method to use: 'metaclip' (default), 'depth', or 'rgb'."
+        description="The keypoint detection method to use."
     ),
     model_type: Optional[ModelType] = Query(
         default=ModelType.MATTRESS,
@@ -138,12 +140,16 @@ async def _capture_and_detect(
     """Helper function to capture images and run detection."""
     # Use the service to capture images
     color_bgr_image, depth_image = rs_capture_service.capture_images()
+    # Save raw captured images using the utility function
+    save_captured_images(color_bgr_image, depth_image)
+
     color_image = cv2.cvtColor(color_bgr_image, cv2.COLOR_BGR2RGB)
 
     detector_map = {
         DetectionMethod.METACLIP: MetaClipKeypointDetectorService(model_type=model_type),
         DetectionMethod.RGB: rgb_detector_service,
-        DetectionMethod.DEPTH: depth_detector_service
+        DetectionMethod.DEPTH: depth_detector_service,
+        DetectionMethod.QUADRILATERAL: quad_detector_service,
     }
 
     detector = detector_map.get(method)
@@ -166,7 +172,7 @@ async def _capture_and_detect(
 async def capture_and_detect_keypoints(
     method: DetectionMethod = Query(
         default=DetectionMethod.METACLIP,
-        description="The keypoint detection method to use: 'metaclip' (default), 'depth', or 'rgb'."
+        description="The keypoint detection method to use."
     ),
     model_type: Optional[ModelType] = Query(
         default=ModelType.MATTRESS,
@@ -199,7 +205,7 @@ async def capture_and_detect_keypoints(
 async def capture_and_detect_keypoints_visualization(
     method: DetectionMethod = Query(
         default=DetectionMethod.METACLIP,
-        description="The keypoint detection method to use: 'metaclip' (default), 'depth', or 'rgb'."
+        description="The keypoint detection method to use."
     ),
     model_type: Optional[ModelType] = Query(
         default=ModelType.MATTRESS,

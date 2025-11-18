@@ -5,6 +5,7 @@ class DetectionMethod(str, Enum):
     METACLIP = "metaclip"
     RGB = "rgb"
     DEPTH = "depth"
+    QUADRILATERAL = "quadrilateral"
 
 class ModelType(str, Enum):
     """Enum for selecting the MetaCLIP model type."""
