@@ -193,7 +193,7 @@ def segment_fitted_sheet(image_rgb: np.ndarray, model: YOLO, allowed_classes: Se
     return mask if np.any(mask) else None
 
 
-class QuadKeypointDetectorService:
+class QuadDKeypointDetectorService:
     def __init__(self, model_path: str = "weights/yolo_finetuned/best.pt"):
         self.model = self._load_model(model_path)
 
@@ -220,7 +220,7 @@ class QuadKeypointDetectorService:
         Detects four corner keypoints of a fitted sheet by fitting a quadrilateral to its segmentation mask.
         """
         if rs_service is None:
-            logger.info("RealSense service not provided to Quad detector; 3D points will not be calculated.")
+            logger.warning("RealSense service is not found; 3D points will not be calculated.")
         
         # The script expects BGR, but the endpoint provides RGB. We use the provided RGB.
         mask = segment_fitted_sheet(color_image, self.model, ALLOWED_CLASSES)
@@ -256,8 +256,8 @@ class QuadKeypointDetectorService:
         processed_image = color_image.copy()
 
         # Draw the polygon and corners on the image
-        #poly = np.round(quad_final).astype(np.int32).reshape(-1, 1, 2)
-        #cv2.polylines(processed_image, [poly], True, (0, 255, 0), 2)
+        poly = np.round(quad_final).astype(np.int32).reshape(-1, 1, 2)
+        cv2.polylines(processed_image, [poly], True, (0, 255, 0), 2)
 
         for i, point in enumerate(quad_final):
             x, y = int(round(point[0])), int(round(point[1]))
@@ -279,7 +279,7 @@ class QuadKeypointDetectorService:
 
 # Instantiate the service for the API
 try:
-    quad_detector_service = QuadKeypointDetectorService()
+    quadD_detector_service = QuadDKeypointDetectorService()
 except Exception as e:
     logger.error(f"Failed to initialize QuadKeypointDetectorService: {e}", exc_info=True)
-    quad_detector_service = None
+    quadD_detector_service = None

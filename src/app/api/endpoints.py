@@ -15,7 +15,8 @@ from app.services.depth_keypoint_detector import depth_detector_service
 from app.services.metaclip_keypoint_detector import MetaClipKeypointDetectorService
 from app.services.realsense_capture import RealSenseCaptureService, NoDeviceError, FrameCaptureError, RealSenseError
 from app.services.rgb_keypoint_detector import rgb_detector_service
-from app.services.quad_keypoint_detector import quad_detector_service
+from app.services.quad_d_keypoint_detector import quadD_detector_service
+from app.services.quad_yc_keypoint_detector import quadYC_detector_service
 from app.api.param_schema import DetectionMethod, ModelType, ProcessedImagePayload, Keypoint
 from app.common.utils import get_image_hash, save_captured_images
 
@@ -56,7 +57,8 @@ async def _process_and_detect(
         DetectionMethod.METACLIP: MetaClipKeypointDetectorService(model_type=model_type),
         DetectionMethod.RGB: rgb_detector_service,
         DetectionMethod.DEPTH: depth_detector_service,
-        DetectionMethod.QUADRILATERAL: quad_detector_service,
+        DetectionMethod.QUAD_D: quadD_detector_service,
+        DetectionMethod.QUAD_YC: quadYC_detector_service,
     }
     
     detector = detector_map.get(method)
@@ -148,7 +150,8 @@ async def _capture_and_detect(
         DetectionMethod.METACLIP: MetaClipKeypointDetectorService(model_type=model_type),
         DetectionMethod.RGB: rgb_detector_service,
         DetectionMethod.DEPTH: depth_detector_service,
-        DetectionMethod.QUADRILATERAL: quad_detector_service,
+        DetectionMethod.QUAD_D: quadD_detector_service,
+        DetectionMethod.QUAD_YC: quadYC_detector_service,
     }
 
     detector = detector_map.get(method)

@@ -25,7 +25,7 @@ def get_image_hash(image_array: np.ndarray, algorithm: str = 'sha256') -> str:
     return hasher.hexdigest()
 
 
-def save_captured_images(color_bgr_image: np.ndarray, depth_image: np.ndarray, save_dir: str = "src/image_captured"):
+def save_captured_images(color_bgr_image: np.ndarray, depth_image: np.ndarray, save_dir: str = "image_captured"):
     """
     Saves the raw color and depth images to a specified directory with timestamps.
 
