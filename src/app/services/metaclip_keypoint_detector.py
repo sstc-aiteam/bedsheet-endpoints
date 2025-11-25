@@ -178,3 +178,72 @@ class MetaClipKeypointDetectorService:
             cv2.circle(processed_image, (orig_x, orig_y), 5, (0, 255, 0), -1)
 
         return processed_image, final_keypoints
+
+
+if __name__ == '__main__':
+    import argparse
+    import glob
+    import sys
+
+    # # Add the project's 'src' directory to the Python path to resolve module imports
+    # # when running the script directly.
+    # project_src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    # if project_src_path not in sys.path:
+    #     sys.path.insert(0, project_src_path)
+
+
+    parser = argparse.ArgumentParser(description="Detect keypoints in images using MetaClip model.")
+    parser.add_argument("--image_folder", type=str, default="images",
+                         help="Path to the folder containing images.")
+    parser.add_argument("--model_type", type=str, default="mattress",
+                        choices=['bedsheet', 'mattress', 'fitted_sheet', 'fitted_sheet_inverse'],
+                        help="Type of model to use for detection.")
+    parser.add_argument("--output_folder", type=str, default="result_metaclip", 
+                        help="Optional path to save output images. If not provided, images will be displayed.")
+    args = parser.parse_args()
+
+    if args.output_folder:
+        os.makedirs(args.output_folder, exist_ok=True)
+
+    try:
+        detector = MetaClipKeypointDetectorService(model_type=args.model_type)
+    except FileNotFoundError as e:
+        logger.error(f"Failed to initialize detector: {e}")
+        exit(1)
+
+    image_paths = sorted(glob.glob(os.path.join(args.image_folder, '*.[jJ][pP][gG]')) +
+                       glob.glob(os.path.join(args.image_folder, '*.[pP][nN][gG]')))
+
+    for image_path in image_paths:
+        if not os.path.isfile(image_path):
+            continue
+
+        if not image_path.lower().endswith(('.jpg', '.jpeg', '.png')):
+            continue
+
+        print(f"Processing {image_path}...")
+        color_image_bgr = cv2.imread(image_path)
+        if color_image_bgr is None:
+            logger.warning(f"Could not read image {image_path}, skipping.")
+            continue
+
+        color_image_rgb = cv2.cvtColor(color_image_bgr, cv2.COLOR_BGR2RGB)
+        h, w = color_image_rgb.shape[:2]
+        dummy_depth = np.zeros((h, w), dtype=np.uint16)
+
+        processed_image_rgb, keypoints = detector.detect_keypoints(color_image_rgb, dummy_depth, rs_service=None)
+        logger.info(f"Found {len(keypoints)} keypoints.")
+
+        processed_image_bgr = cv2.cvtColor(processed_image_rgb, cv2.COLOR_RGB2BGR)
+
+        if args.output_folder:
+            output_filename = f"{args.model_type}_{os.path.basename(image_path)}"
+            output_path = os.path.join(args.output_folder, output_filename)
+            cv2.imwrite(output_path, processed_image_bgr)
+            logger.info(f"Saved result to {output_path}")
+        else:
+            cv2.imshow(f'Keypoints for {os.path.basename(image_path)}', processed_image_bgr)
+            if cv2.waitKey(0) & 0xFF == ord('q'):
+                break
+
+    cv2.destroyAllWindows()

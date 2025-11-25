@@ -15,8 +15,9 @@ env
 *.pt
 *.pth
 
-# RGB, Depth, and Point Cloud image files
+# RGB, Depth, and 3D Point Cloud image files
 image_data/
+result_metaclip/
 *.png
 *.npy
 *.ply
