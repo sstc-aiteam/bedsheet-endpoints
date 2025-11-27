@@ -158,7 +158,7 @@ class QuadYCKeypointDetectorService:
                 "rgbd": {"x": x, "y": y, "depth_m": round(depth_m, 5)},
                 "point3d_m": format_3d_coordinates(point_3d)
             })
-            cv2.circle(processed_image, (x, y), 6, (0, 0, 255), -1)
+            cv2.circle(processed_image, (x, y), 6, (0, 255, 0), -1)
 
         return processed_image, final_keypoints
 
