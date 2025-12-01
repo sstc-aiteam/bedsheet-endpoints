@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
 
     parser = argparse.ArgumentParser(description="Detect keypoints in images using MetaClip model.")
-    parser.add_argument("--image_folder", type=str, default="images",
+    parser.add_argument("--input_folder", type=str, default="images",
                          help="Path to the folder containing images.")
     parser.add_argument("--model_type", type=str, default="mattress",
                         choices=['bedsheet', 'mattress', 'fitted_sheet', 'fitted_sheet_inverse'],
@@ -211,8 +211,8 @@ if __name__ == '__main__':
         logger.error(f"Failed to initialize detector: {e}")
         exit(1)
 
-    image_paths = sorted(glob.glob(os.path.join(args.image_folder, '*.[jJ][pP][gG]')) +
-                       glob.glob(os.path.join(args.image_folder, '*.[pP][nN][gG]')))
+    image_paths = sorted(glob.glob(os.path.join(args.input_folder, '*.[jJ][pP][gG]')) +
+                       glob.glob(os.path.join(args.input_folder, '*.[pP][nN][gG]')))
 
     for image_path in image_paths:
         if not os.path.isfile(image_path):

@@ -168,3 +168,68 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize LegacyQuadDetectorService: {e}", exc_info=True)
     quadYC_detector_service = None
+
+
+if __name__ == '__main__':
+    import argparse
+    import glob
+    import json
+
+    # Configure basic logging for command-line use
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    parser = argparse.ArgumentParser(description="Detect bedsheet corner keypoints in a folder of images.")
+    parser.add_argument("--input_folder", help="Path to the folder containing input color images (JPG, PNG).")
+    parser.add_argument("--output_folder", help="Path to the folder where processed images and keypoint data will be saved.")
+    args = parser.parse_args()
+
+    if not os.path.exists(args.output_folder):
+        os.makedirs(args.output_folder)
+        logger.info(f"Created output directory: {args.output_folder}")
+
+    try:
+        detector = QuadYCKeypointDetectorService()
+    except Exception as e:
+        logger.error(f"Failed to initialize the detector. Exiting. Error: {e}")
+        exit(1)
+
+    image_extensions = ('*.jpg', '*.jpeg', '*.png')
+    image_paths = []
+    for ext in image_extensions:
+        image_paths.extend(glob.glob(os.path.join(args.input_folder, ext)))
+
+    logger.info(f"Found {len(image_paths)} images to process.")
+
+    for img_path in image_paths:
+        # if not any(id in img_path for id in ['717575', '839856', '831958', '057626']):
+        #     continue
+
+        try:
+            logger.info(f"Processing {img_path}...")
+            color_image = cv2.imread(img_path)
+            if color_image is None:
+                logger.warning(f"Could not read image {img_path}, skipping.")
+                continue
+
+            # Look for a corresponding .npy depth file
+            base_filename, _ = os.path.splitext(img_path)
+            color_fn = base_filename.split('/')[-1]
+            depth_fn = color_fn.replace('color', 'depth')
+            depth_path = f"{base_filename.replace(color_fn, depth_fn)}.npy"
+            
+            if os.path.exists(depth_path):
+                depth_image = np.load(depth_path)
+                logger.info(f"Loaded depth image from {depth_path}")
+            else:
+                # Create a dummy depth image if not available
+                logger.warning(f"Depth file not found at {depth_path}. Using dummy depth.")
+                depth_image = np.zeros((color_image.shape[0], color_image.shape[1]), dtype=np.uint16)
+
+            processed_image, keypoints = detector.detect_keypoints(cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB), depth_image)
+
+            base_filename = os.path.splitext(os.path.basename(img_path))[0]
+            cv2.imwrite(os.path.join(args.output_folder, f"{base_filename}_processed.png"), cv2.cvtColor(processed_image, cv2.COLOR_RGB2BGR))
+            with open(os.path.join(args.output_folder, f"{base_filename}_keypoints.json"), 'w') as f:
+                json.dump(keypoints, f, indent=4)
+        except Exception as e:
+            logger.error(f"An error occurred while processing {img_path}: {e}", exc_info=True)
