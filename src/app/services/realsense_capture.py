@@ -46,6 +46,8 @@ class RealSenseCaptureService:
             logger.info("Attempting to initialize RealSense pipeline...")
             self.pipeline = rs.pipeline()
             config = rs.config()
+            # Create hole filling filter with mode 2 (nearest from around)
+            self.hole_filling = rs.hole_filling_filter(2)
             
             # 1. Check for device connection
             context = rs.context()
@@ -81,12 +83,14 @@ class RealSenseCaptureService:
             raise RealSenseError(f"Failed to start RealSense pipeline: {e}") from e
 
 
-    def capture_images(self):
+    def capture_images(self, use_hole_filling: bool = False):
         """
         Captures and aligns one pair of color and depth frames.
         Will attempt to re-initialize the device if not connected.
 
-        Returns:
+        Args:
+            use_hole_filling (bool): If True, applies a hole-filling filter to the depth frame. Defaults to False.
+        Returns: 
             A tuple containing (color_image, depth_image).
         """
         try:
@@ -107,13 +111,17 @@ class RealSenseCaptureService:
             frames = self.pipeline.wait_for_frames(timeout_ms=3000)
             aligned_frames = self.align.process(frames)
 
-            aligned_depth_frame = aligned_frames.get_depth_frame()
+            depth_frame = aligned_frames.get_depth_frame()
             color_frame = aligned_frames.get_color_frame()
 
-            if not aligned_depth_frame or not color_frame:
+            if not depth_frame or not color_frame:
                 raise FrameCaptureError("Could not capture valid frames from RealSense camera.")
 
-            depth_image = np.asanyarray(aligned_depth_frame.get_data())
+            # Conditionally apply the hole filling filter to the depth frame
+            if use_hole_filling:
+                depth_frame = self.hole_filling.process(depth_frame)
+
+            depth_image = np.asanyarray(depth_frame.get_data())
             color_image = np.asanyarray(color_frame.get_data())
             
             return color_image, depth_image
