@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import torch
 import itertools
+from scipy.ndimage import distance_transform_edt
 
 from ultralytics import YOLO
 
@@ -32,6 +33,26 @@ def merge_close_points(points: List[np.ndarray], threshold: int) -> List[np.ndar
         if not any(np.linalg.norm(p - m) < threshold for m in merged):
             merged.append(p)
     return merged
+
+def _find_nearest_nonzero_depth(point: Tuple[int, int], depth_image: np.ndarray, mask: np.ndarray) -> Optional[Tuple[int, int]]:
+    """
+    If the given point has zero depth, find the nearest point within the mask that has a non-zero depth.
+    """
+    x, y = point
+    h, w = depth_image.shape
+
+    # 1. Check if the point is valid and has depth
+    if 0 <= y < h and 0 <= x < w and depth_image[y, x] > 0:
+        return point
+
+    # 2. Create a map of all valid depth locations within the mask
+    valid_depth_mask = (depth_image > 0) & (mask > 0)
+    if not np.any(valid_depth_mask):
+        return None # No valid depth points exist in the mask
+
+    # 3. Find the coordinates of the closest valid depth point
+    _, indices = distance_transform_edt(np.logical_not(valid_depth_mask), return_indices=True)
+    return indices[1, y, x], indices[0, y, x]
 
 class QuadYCKeypointDetectorService:
     def __init__(self, model_path: str = "weights/yolo_finetuned/best.pt"):
@@ -96,7 +117,7 @@ class QuadYCKeypointDetectorService:
         orig_h, orig_w = image_bgr.shape[:2]
         return cv2.resize(bedbag_mask, (orig_w, orig_h), interpolation=cv2.INTER_NEAREST)
 
-    def _find_max_area_quad(self, mask: np.ndarray) -> Optional[np.ndarray]:
+    def _find_max_area_quad(self, mask: np.ndarray, depth_image: np.ndarray) -> Optional[np.ndarray]:
         """Finds the quadrilateral with the maximum area from the mask, adapted from box_v3.py."""
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
@@ -109,8 +130,14 @@ class QuadYCKeypointDetectorService:
             hull = cv2.convexHull(cnt)
             epsilon = 0.05 * cv2.arcLength(hull, True)
             approx = cv2.approxPolyDP(hull, epsilon, True)
-            for pt in approx:
-                possible_corners.append(pt[0])
+            for point in approx:
+                x, y = point[0]
+                # If point has no depth, find the nearest valid one within the mask
+                valid_point = _find_nearest_nonzero_depth((x, y), depth_image, mask)
+                if valid_point:
+                    # Use the point with valid depth
+                    possible_corners.append(np.array(valid_point))
+
 
         if len(possible_corners) < 4:
             return None
@@ -138,7 +165,7 @@ class QuadYCKeypointDetectorService:
             logger.warning("Legacy Quad method: Segmentation did not find a bedbag.")
             return color_image, []
 
-        quad = self._find_max_area_quad(mask)
+        quad = self._find_max_area_quad(mask, depth_image)
         if quad is None:
             logger.warning("Legacy Quad method: Could not infer quadrilateral from mask.")
             return color_image, []
