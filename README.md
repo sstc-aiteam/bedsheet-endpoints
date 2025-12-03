@@ -66,7 +66,8 @@ bedsheet-endpoints/
   - [Cloud-Native on Jetson](https://developer.nvidia.com/embedded/jetson-cloud-native)
 - [Jetson Orin + RealSense in 5 minutes](https://jetsonhacks.com/2025/03/20/jetson-orin-realsense-in-5-minutes/)
 - [Intel® RealSense™ SDK](https://github.com/IntelRealSense/librealsense)
-- [Azure Kinect SDK](https://github.com/microsoft/Azure-Kinect-Sensor-SDK/blob/develop/docs/usage.md)
+- [Azure-Kinect-Sensor-SDK](https://github.com/microsoft/Azure-Kinect-Sensor-SDK/tree/develop)
+  - [Azure Kinect SDK](https://github.com/microsoft/Azure-Kinect-Sensor-SDK/blob/develop/docs/usage.md)
 - [NoMachine -Jetson Remote Desktop](https://jetsonhacks.com/2023/12/03/nomachine-jetson-remote-desktop/)
 - Chromium browser installation
   - `sudo apt install chromium-browser` 
