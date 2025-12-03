@@ -68,6 +68,7 @@ bedsheet-endpoints/
 - [Intel® RealSense™ SDK](https://github.com/IntelRealSense/librealsense)
 - [Azure-Kinect-Sensor-SDK](https://github.com/microsoft/Azure-Kinect-Sensor-SDK/tree/develop)
   - [Azure Kinect SDK](https://github.com/microsoft/Azure-Kinect-Sensor-SDK/blob/develop/docs/usage.md)
+  - [pyk4a](https://github.com/etiennedub/pyk4a)
 - [NoMachine -Jetson Remote Desktop](https://jetsonhacks.com/2023/12/03/nomachine-jetson-remote-desktop/)
 - Chromium browser installation
   - `sudo apt install chromium-browser` 
