@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import torch
 import logging
+import json
 from typing import List, Tuple
 
 from app.models.clip_heatmap_model import ClipHeatmapModel
@@ -39,7 +40,7 @@ class MetaClipKeypointDetectorService:
             'bedsheet': {
                 'path': 'weights/meta_clip_style_bedsheet_post_original',
                 'lora_r': 16, 'lora_alpha': 32, 'image_size': 256, 'use_text_prior': True,
-                'seg_classes': [3]
+                'seg_classes': [1]
             },
             'mattress': {
                 'path': 'weights/meta_clip_style_mattress_post_original',
@@ -54,7 +55,7 @@ class MetaClipKeypointDetectorService:
             'fitted_sheet_inverse': {
                 'path': 'weights/meta_clip_style_fitted_sheet_inverse_post_original',
                 'lora_r': 16, 'lora_alpha': 32, 'image_size': 256, 'use_text_prior': True,
-                'seg_classes': [1,3]
+                'seg_classes': [1]
             }
         }
         if model_type not in configs:
@@ -107,30 +108,29 @@ class MetaClipKeypointDetectorService:
 
         target_size = self.model_config['image_size']
         image_resized = cv2.resize(image, (target_size, target_size), interpolation=cv2.INTER_LINEAR)
-        image_resized = image_resized.astype(np.float32)
         if self.yolo_model is None:
             return image_resized
 
         try:
             logger.info(f"RGB color image hash: {get_image_hash(image)}")
-            results = self.yolo_model(image, task="segment", verbose=False)
+            results = self.yolo_model(image_resized, task="segment", verbose=False)
             if not (results and results[0].masks):
                 return image_resized
 
-            mask_all = np.zeros(image.shape[:2], dtype=np.uint8)
+            mask_all = np.zeros((target_size, target_size), dtype=np.uint8)
             masks = results[0].masks.data.cpu().numpy()
             classes = results[0].boxes.cls.cpu().numpy()
 
             for mask, cls_id in zip(masks, classes):
                 if int(cls_id) in self.model_config['seg_classes']:
+                    # Resize mask to target size (should already be correct size)
+                    mask = cv2.resize(mask, (target_size, target_size), interpolation=cv2.INTER_NEAREST)
                     mask_binary = (mask > 0.5).astype(np.uint8) * 255
-                    mask_resized = cv2.resize(mask_binary, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_NEAREST)
-                    mask_all = cv2.bitwise_or(mask_all, mask_resized)
+                    mask_all = cv2.bitwise_or(mask_all, mask_binary)
 
             if np.any(mask_all > 0):
                 logger.info(f"✅ Applied YOLO segmentation for classes {self.model_config['seg_classes']}")
-                mask_all_resized = cv2.resize(mask_all, (target_size, target_size), interpolation=cv2.INTER_NEAREST)
-                image_resized[mask_all_resized == 0] = 0
+                image_resized[mask_all == 0] = 0
 
         except Exception as e:
             logging.error(f"⚠️ YOLO processing failed: {e}")
@@ -152,11 +152,11 @@ class MetaClipKeypointDetectorService:
         logger.info(f"Input shape: {image_tensor.shape}, Original size: {(orig_w, orig_h)}")
 
         with torch.no_grad():
-            heatmap = self.model(image_tensor).squeeze().cpu().numpy()
+            heatmap = self.model(image_tensor)[0,0].cpu().numpy()
         logger.info(f"Heatmap shape: {heatmap.shape}")
         logger.info(f"hash of heatmap: {get_image_hash(heatmap)}")
 
-        peaks = thresholded_locations(heatmap, threshold=0.3)
+        peaks = thresholded_locations(heatmap, threshold=0.1)
         
         combined_peaks = combine_nearby_peaks(peaks, distance_threshold=10)
 
@@ -237,9 +237,13 @@ if __name__ == '__main__':
         processed_image_bgr = cv2.cvtColor(processed_image_rgb, cv2.COLOR_RGB2BGR)
 
         if args.output_folder:
-            output_filename = f"{args.model_type}_{os.path.basename(image_path)}"
-            output_path = os.path.join(args.output_folder, output_filename)
+            base_name, img_ext = os.path.splitext(os.path.basename(image_path))
+            output_filename_base = f"{args.model_type}_{base_name}"
+            output_path = os.path.join(args.output_folder, f"{output_filename_base}{img_ext}")
             cv2.imwrite(output_path, processed_image_bgr)
+
+            with open(os.path.join(args.output_folder, f"{output_filename_base}_keypoints.json"), 'w') as f:
+                json.dump(keypoints, f, indent=4)
             logger.info(f"Saved result to {output_path}")
         else:
             cv2.imshow(f'Keypoints for {os.path.basename(image_path)}', processed_image_bgr)
