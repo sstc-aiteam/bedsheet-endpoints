@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
+from app.api.param_schema import DetectionParams
 from app.core.config import settings
 from app.common.utils import format_3d_coordinates
 from app.services.realsense_capture import RealSenseCaptureService
@@ -251,7 +252,8 @@ class QuadDKeypointDetectorService:
     def detect_keypoints(self, 
                          color_image: np.ndarray, 
                          depth_image: np.ndarray, 
-                         rs_service: RealSenseCaptureService = None
+                         rs_service: RealSenseCaptureService = None,
+                         params: Optional[DetectionParams] = None
                          ) -> Tuple[np.ndarray, List[dict]]:
         """
         Detects four corner keypoints of a fitted sheet by fitting a quadrilateral to its segmentation mask.

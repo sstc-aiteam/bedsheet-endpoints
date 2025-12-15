@@ -2,9 +2,11 @@ import numpy as np
 import cv2
 import torch
 import logging
+from typing import Optional
 from scipy.ndimage import label
 from ultralytics import YOLO
 
+from app.api.param_schema import DetectionParams
 from app.models.yolo_vit import HybridKeypointNet
 from app.services.realsense_capture import RealSenseCaptureService
 from app.models.utils import YoloBackbone
@@ -59,7 +61,8 @@ class DepthKeypointDetector:
     def detect_keypoints(self,
                          color_image: np.ndarray,
                          depth_image: np.ndarray,
-                         rs_service: RealSenseCaptureService = None
+                         rs_service: RealSenseCaptureService = None,
+                         params: Optional[DetectionParams] = None
                          ):
         """The main detection pipeline."""
         c_copy = color_image.copy()

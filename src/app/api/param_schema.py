@@ -8,6 +8,7 @@ class DetectionMethod(str, Enum):
     DEPTH = "depth"
     QUAD_D = "quad_d"
     QUAD_YC = "quad_yc"
+    QUAD_YC_SB = "quad_yc_sb"
 
 class ModelType(str, Enum):
     """Enum for selecting the MetaCLIP model type."""
@@ -17,7 +18,7 @@ class ModelType(str, Enum):
     BEDSHEET = "bedsheet"
 
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 
 
@@ -38,3 +39,6 @@ class Keypoint(BaseModel):
 class ProcessedImagePayload(BaseModel):
     keypoints: Optional[List[Keypoint]] = None
     processed_image: str
+
+class DetectionParams(BaseModel):
+    ntile_divisor: float = 4.0

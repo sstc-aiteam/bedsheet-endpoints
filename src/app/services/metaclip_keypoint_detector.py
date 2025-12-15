@@ -4,8 +4,9 @@ import numpy as np
 import torch
 import logging
 import json
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
+from app.api.param_schema import DetectionParams
 from app.models.clip_heatmap_model import ClipHeatmapModel
 from app.services.realsense_capture import RealSenseCaptureService
 from app.models.utils import thresholded_locations, combine_nearby_peaks
@@ -140,7 +141,8 @@ class MetaClipKeypointDetectorService:
     def detect_keypoints(self,
                          color_image: np.ndarray,
                          depth_image: np.ndarray,
-                         rs_service: RealSenseCaptureService = None
+                         rs_service: RealSenseCaptureService = None,
+                         params: Optional[DetectionParams] = None
                          ) -> Tuple[np.ndarray, List[dict]]:
         """Detects keypoints in the given color image."""
         orig_h, orig_w = color_image.shape[:2]

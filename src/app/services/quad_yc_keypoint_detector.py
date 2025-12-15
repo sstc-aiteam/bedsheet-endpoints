@@ -10,6 +10,7 @@ from scipy.ndimage import distance_transform_edt
 
 from ultralytics import YOLO
 
+from app.api.param_schema import DetectionParams
 from app.core.config import settings
 from app.common.utils import format_3d_coordinates
 from app.services.realsense_capture import RealSenseCaptureService
@@ -155,7 +156,7 @@ class QuadYCKeypointDetectorService:
         
         return best_quad
 
-    def detect_keypoints(self, color_image: np.ndarray, depth_image: np.ndarray, rs_service: RealSenseCaptureService = None) -> Tuple[np.ndarray, List[dict]]:
+    def detect_keypoints(self, color_image: np.ndarray, depth_image: np.ndarray, rs_service: RealSenseCaptureService = None, params: Optional[DetectionParams] = None) -> Tuple[np.ndarray, List[dict]]:
         """Detects four corner keypoints by segmenting and finding the max area quadrilateral."""
         # Convert RGB from endpoint to BGR for the model
         color_image_bgr = cv2.cvtColor(color_image, cv2.COLOR_RGB2BGR)

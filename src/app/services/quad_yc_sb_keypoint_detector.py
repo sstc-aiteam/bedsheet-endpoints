@@ -10,6 +10,7 @@ from scipy.ndimage import distance_transform_edt
 
 from ultralytics import YOLO
 
+from app.api.param_schema import DetectionParams
 from app.core.config import settings
 from app.common.utils import format_3d_coordinates
 from app.services.realsense_capture import RealSenseCaptureService
@@ -54,7 +55,7 @@ def _find_nearest_nonzero_depth(point: Tuple[int, int], depth_image: np.ndarray,
     _, indices = distance_transform_edt(np.logical_not(valid_depth_mask), return_indices=True)
     return indices[1, y, x], indices[0, y, x]
 
-class QuadYCKeypointDetectorService:
+class QuadYCShortBottomKeypointDetectorService:
     def __init__(self, model_path: str = "weights/yolo_finetuned/best.pt"):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = self._load_model(model_path)
@@ -117,7 +118,7 @@ class QuadYCKeypointDetectorService:
         orig_h, orig_w = image_bgr.shape[:2]
         return cv2.resize(bedbag_mask, (orig_w, orig_h), interpolation=cv2.INTER_NEAREST)
 
-    def _find_max_area_quad(self, mask: np.ndarray, depth_image: np.ndarray, quartile_divisor: float = 4.0) -> Optional[np.ndarray]:
+    def _find_max_area_quad_with_short_bottom(self, mask: np.ndarray, depth_image: np.ndarray, ntile_divisor: float = 4.0) -> Optional[np.ndarray]:
         """Finds the quadrilateral with the maximum area from the mask, adapted from box_v3.py."""
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
@@ -166,8 +167,8 @@ class QuadYCKeypointDetectorService:
             tl, tr = top_pts[0], top_pts[1]
             bl, br = bot_pts[0], bot_pts[1]
 
-            # Define approx Quartile numbers in bottom x axis, Q1 and Q3, to limit search range
-            gap = (br[0] - bl[0]) / quartile_divisor
+            # Define approx Quartile numbers in bottom x axis, Q1 and Q3, to limit search range, if ntile_divisor=4
+            gap = (br[0] - bl[0]) / ntile_divisor
             approx_q1_bx = bl[0] + gap
             approx_q3_bx = br[0] - gap
             
@@ -201,9 +202,10 @@ class QuadYCKeypointDetectorService:
         
         return best_quad
 
-    def detect_keypoints(self, color_image: np.ndarray, depth_image: np.ndarray, rs_service: RealSenseCaptureService = None, quartile_divisor: float = 4.0) -> Tuple[np.ndarray, List[dict]]:
+    def detect_keypoints(self, color_image: np.ndarray, depth_image: np.ndarray, rs_service: RealSenseCaptureService = None, params: Optional[DetectionParams] = None) -> Tuple[np.ndarray, List[dict]]:
         """Detects four corner keypoints by segmenting and finding the max area quadrilateral."""
         # Convert RGB from endpoint to BGR for the model
+        quartile_divisor = params.ntile_divisor if params else 4.0
         color_image_bgr = cv2.cvtColor(color_image, cv2.COLOR_RGB2BGR)
 
         mask = self._segment_bedbag(color_image_bgr)
@@ -211,7 +213,7 @@ class QuadYCKeypointDetectorService:
             logger.warning("Legacy Quad method: Segmentation did not find a bedbag.")
             return color_image, []
 
-        quad = self._find_max_area_quad(mask, depth_image, quartile_divisor=quartile_divisor)
+        quad = self._find_max_area_quad_with_short_bottom(mask, depth_image, ntile_divisor=quartile_divisor)
         if quad is None:
             logger.warning("Legacy Quad method: Could not infer quadrilateral from mask.")
             return color_image, []
@@ -237,10 +239,10 @@ class QuadYCKeypointDetectorService:
 
 # Instantiate the service for the API
 try:
-    quadYC_detector_service = QuadYCKeypointDetectorService()
+    quadYC_sb_detector_service = QuadYCShortBottomKeypointDetectorService()
 except Exception as e:
     logger.error(f"Failed to initialize LegacyQuadDetectorService: {e}", exc_info=True)
-    quadYC_detector_service = None
+    quadYC_sb_detector_service = None
 
 
 if __name__ == '__main__':
@@ -261,7 +263,7 @@ if __name__ == '__main__':
         logger.info(f"Created output directory: {args.output_folder}")
 
     try:
-        detector = QuadYCKeypointDetectorService()
+        detector = QuadYCShortBottomKeypointDetectorService()
     except Exception as e:
         logger.error(f"Failed to initialize the detector. Exiting. Error: {e}")
         exit(1)
