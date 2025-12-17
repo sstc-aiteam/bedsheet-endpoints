@@ -12,3 +12,4 @@ timm
 pydantic-settings
 python-multipart
 pyrealsense2
+pillow-heif

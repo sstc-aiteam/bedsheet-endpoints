@@ -33,6 +33,7 @@ inference_results/
 src/rgb_keypoint_detection.py
 src/inference_demo_simple.py
 src/fitted_sheet_homography_keypoint_extraction.py
+src/classify_fitted_sheet.py
 
 src/box_v2.py
 src/box_v3.py
