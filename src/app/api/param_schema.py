@@ -19,7 +19,7 @@ class ModelType(str, Enum):
 
 
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 
 class RGBDepth(BaseModel):
@@ -42,3 +42,14 @@ class ProcessedImagePayload(BaseModel):
 
 class DetectionParams(BaseModel):
     ntile_divisor: float = 4.0
+
+class BoundingBox(BaseModel):
+    x_min: int
+    y_min: int
+    x_max: int
+    y_max: int
+class FittedSheetClassificationResponse(BaseModel):
+    label: str
+    pred: int
+    conf: float
+    bbox: Optional[BoundingBox] = None

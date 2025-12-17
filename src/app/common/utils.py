@@ -1,10 +1,14 @@
+import io
 import hashlib
 import logging
 import os
 from datetime import datetime
+from typing import Optional
 
 import cv2
 import numpy as np
+
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -56,3 +60,26 @@ def format_3d_coordinates(point_3d: list) -> dict:
                   "z": round(point_3d[2], 5)}
     
     return coord_text
+
+
+def decode_image_bytes_to_rgb(contents: bytes) -> Optional[np.ndarray]:
+    """Decodes image bytes to RGB numpy array, supporting HEIC if pillow-heif is installed."""
+    # Try OpenCV first
+    nparr = np.frombuffer(contents, np.uint8)
+    img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if img_bgr is not None:
+        return cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    
+    # Try PIL with .HEIC support
+    try:
+        from pillow_heif import register_heif_opener
+        register_heif_opener()
+    except ImportError:
+        pass
+
+    try:
+        with Image.open(io.BytesIO(contents)) as img:
+            return np.array(img.convert("RGB"))
+    except Exception:
+        return None
+

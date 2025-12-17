@@ -3,6 +3,7 @@ import cv2
 import io
 import base64
 import logging
+from PIL import Image
 
 from typing import Optional
 
@@ -14,17 +15,20 @@ from fastapi import Body
 from app.services.depth_keypoint_detector import depth_detector_service
 from app.services.metaclip_keypoint_detector import MetaClipKeypointDetectorService
 from app.services.realsense_capture import RealSenseCaptureService, NoDeviceError, FrameCaptureError, RealSenseError
+from app.services.fitted_sheet_classifier import fitted_sheet_classifier_service
 from app.services.rgb_keypoint_detector import rgb_detector_service
 from app.services.quad_d_keypoint_detector import quadD_detector_service
 from app.services.quad_yc_keypoint_detector import quadYC_detector_service
 from app.services.quad_yc_sb_keypoint_detector import quadYC_sb_detector_service
-from app.api.param_schema import DetectionMethod, ModelType, ProcessedImagePayload, Keypoint, DetectionParams
-from app.common.utils import get_image_hash, save_captured_images
+from app.api.param_schema import DetectionMethod, ModelType, ProcessedImagePayload, DetectionParams
+from app.api.param_schema import FittedSheetClassificationResponse, BoundingBox
+from app.common.utils import get_image_hash, save_captured_images, decode_image_bytes_to_rgb
 
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
 
 async def _process_and_detect(
     method: DetectionMethod,
@@ -35,10 +39,7 @@ async def _process_and_detect(
 ):
     """Helper function to process images and run detection."""
     color_contents = await color_file.read()
-    color_nparr = np.frombuffer(color_contents, np.uint8)
-    img_bgr = cv2.imdecode(color_nparr, cv2.IMREAD_COLOR)
-    # Convert BGR to RGB
-    color_image = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    color_image = decode_image_bytes_to_rgb(color_contents)
 
     if color_image is None:
         raise HTTPException(status_code=400, detail="Could not decode color image.")
@@ -280,3 +281,71 @@ async def show_image_from_base64(
     except Exception as e:
         logging.error(f"Error processing request in /show_image_from_base64: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+
+
+@router.post("/detect_fitted_sheet/", response_model=FittedSheetClassificationResponse)
+async def detect_fitted_sheet(file: UploadFile = File(...)):
+    """
+    Classify a fitted sheet image.
+    """
+    contents = await file.read()
+    img_rgb = decode_image_bytes_to_rgb(contents)
+
+    if img_rgb is None:
+        raise HTTPException(status_code=400, detail="Could not decode image.")
+
+    rs = fitted_sheet_classifier_service.classify(img_rgb)
+    
+    if isinstance(rs, dict) and "error" in rs:
+        raise HTTPException(status_code=500, detail=rs["error"])
+    
+    bbox = BoundingBox(
+        x_min=rs["bbox"][0], y_min=rs["bbox"][1],
+        x_max=rs["bbox"][2], y_max=rs["bbox"][3]) if rs["bbox"] else None
+
+    return FittedSheetClassificationResponse(
+            label=rs["label"],
+            pred=rs["pred"],
+            conf=rs["conf"],
+            bbox=bbox)
+
+
+@router.post("/capture_and_detect_fitted_sheet/", response_model=FittedSheetClassificationResponse)
+async def capture_and_detect_fitted_sheet(
+    rs_capture_service: RealSenseCaptureService = Depends(RealSenseCaptureService)
+):
+    """
+    Captures an image from the RealSense camera and classifies the fitted sheet.
+    """
+    try:
+        color_bgr, _ = rs_capture_service.capture_images()
+
+        img_rgb = cv2.cvtColor(color_bgr, cv2.COLOR_BGR2RGB)
+
+        rs = fitted_sheet_classifier_service.classify(img_rgb)
+
+        if isinstance(rs, dict) and "error" in rs:
+            raise HTTPException(status_code=500, detail=rs["error"])
+
+        bbox = BoundingBox(
+            x_min=rs["bbox"][0], y_min=rs["bbox"][1],
+            x_max=rs["bbox"][2], y_max=rs["bbox"][3]) if rs["bbox"] else None
+
+        return FittedSheetClassificationResponse(
+            label=rs["label"],
+            pred=rs["pred"],
+            conf=rs["conf"],
+            bbox=bbox)
+
+    except NoDeviceError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except (FrameCaptureError, RealSenseError) as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logging.error(f"Error processing request in /capture_and_detect_fitted_sheet: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+
+
+
+    
+    
