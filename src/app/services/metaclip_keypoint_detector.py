@@ -45,7 +45,7 @@ class MetaClipKeypointDetectorService:
             },
             'mattress': {
                 'path': 'weights/meta_clip_style_mattress_post_original',
-                'lora_r': 16, 'lora_alpha': 32, 'image_size': 256, 'use_text_prior': True,
+                'lora_r': 16, 'lora_alpha': 32, 'image_size': 560, 'use_text_prior': True,
                 'seg_classes': [0, 1, 2, 3]
             },
             'fitted_sheet': {
@@ -55,7 +55,7 @@ class MetaClipKeypointDetectorService:
             },
             'fitted_sheet_inverse': {
                 'path': 'weights/meta_clip_style_fitted_sheet_inverse_post_original',
-                'lora_r': 16, 'lora_alpha': 32, 'image_size': 256, 'use_text_prior': True,
+                'lora_r': 16, 'lora_alpha': 32, 'image_size': 560, 'use_text_prior': True,
                 'seg_classes': [1]
             }
         }
