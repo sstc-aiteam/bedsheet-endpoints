@@ -129,7 +129,7 @@ class QuadYCKeypointDetectorService:
             if cv2.contourArea(cnt) < 2000:
                 continue
             hull = cv2.convexHull(cnt)
-            epsilon = 0.05 * cv2.arcLength(hull, True)
+            epsilon = 0.02 * cv2.arcLength(hull, True)
             approx = cv2.approxPolyDP(hull, epsilon, True)
             for point in approx:
                 x, y = point[0]
@@ -165,14 +165,20 @@ class QuadYCKeypointDetectorService:
         if not np.any(mask):
             logger.warning("Legacy Quad method: Segmentation did not find a bedbag.")
             return color_image, []
+        
+        processed_image = color_image.copy()
+
+        # Overlay segmentation mask
+        overlay = processed_image.copy()
+        overlay[mask > 0] = (255, 0, 0)  # Red overlay in RGB
+        cv2.addWeighted(overlay, 0.4, processed_image, 0.6, 0, processed_image)
 
         quad = self._find_max_area_quad(mask, depth_image)
         if quad is None:
             logger.warning("Legacy Quad method: Could not infer quadrilateral from mask.")
-            return color_image, []
+            return processed_image, []
 
         final_keypoints = []
-        processed_image = color_image.copy()
         cv2.polylines(processed_image, [quad], isClosed=True, color=(0, 255, 0), thickness=2)
 
         for point in quad:
