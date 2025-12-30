@@ -1,3 +1,7 @@
+# Author: dengdee
+# Date: 2025-Dec
+# Description: Service for detecting four corner keypoints of a bedsheet using segmentation and approximate quadrilateral
+
 import logging
 import os
 from typing import List, Tuple, Optional
@@ -56,6 +60,16 @@ def _find_nearest_nonzero_depth(point: Tuple[int, int], depth_image: np.ndarray,
     return indices[1, y, x], indices[0, y, x]
 
 class QuadYCKeypointDetectorService:
+    """
+    Service for detecting keypoints on a bedbag using YOLO segmentation and quadrilateral fitting.
+
+    This service performs the following steps:
+    1. Segments the bedbag from the input image using a YOLO model.
+    2. Refines the segmentation mask using morphological operations.
+    3. Finds contours and approximates a polygon from the convex hull.
+    4. Identifies the best-fitting quadrilateral (4 corners) maximizing the area.
+    5. Maps these 2D corners to 3D points using depth information.
+    """
     def __init__(self, model_path: str = "weights/yolo_finetuned/best.pt"):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = self._load_model(model_path)
